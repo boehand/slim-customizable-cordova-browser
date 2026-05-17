@@ -36,6 +36,24 @@ WebView falls back to a small local instruction page in `www/`.
 
 ---
 
+## Building in a GitHub Codespace
+
+A `.devcontainer/` is included so a fresh Codespace boots ready to build:
+
+1. Open the repo on GitHub → **Code ▾ → Codespaces → Create codespace on `claude/cordova-beacon-browser-SJ6cl`**.
+2. The post-create script installs the Android command-line tools, platform
+   34, build-tools 34.0.0, then runs `npm install` and `npm run customize`.
+3. Once the terminal returns to a prompt:
+
+   ```bash
+   npm run prepare:android    # platform + plugins
+   npm run build:android      # debug APK + dist/cordova-bridge/
+   ```
+
+The APK lands in
+`platforms/android/app/build/outputs/apk/debug/app-debug.apk`, the web
+bridge in `dist/cordova-bridge/`.
+
 ## Build pipeline status
 
 The pipeline was end-to-end verified up to the Android-SDK boundary:

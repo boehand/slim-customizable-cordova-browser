@@ -1,0 +1,29 @@
+{
+    "name": "slim-customizable-cordova-browser",
+    "image": "mcr.microsoft.com/devcontainers/javascript-node:1-22",
+    "features": {
+        "ghcr.io/devcontainers/features/java:1": {
+            "version": "17",
+            "installGradle": false
+        }
+    },
+    "containerEnv": {
+        "ANDROID_HOME": "/opt/android-sdk",
+        "ANDROID_SDK_ROOT": "/opt/android-sdk",
+        "ANDROID_CMDLINE_VERSION": "11076708"
+    },
+    "remoteEnv": {
+        "PATH": "${containerEnv:PATH}:/opt/android-sdk/cmdline-tools/latest/bin:/opt/android-sdk/platform-tools"
+    },
+    "postCreateCommand": "bash .devcontainer/setup.sh",
+    "customizations": {
+        "vscode": {
+            "extensions": [
+                "dbaeumer.vscode-eslint",
+                "vscode-icons-team.vscode-icons"
+            ]
+        }
+    },
+    "forwardPorts": [],
+    "remoteUser": "node"
+}
