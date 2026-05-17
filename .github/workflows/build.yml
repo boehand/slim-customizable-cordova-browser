@@ -84,16 +84,34 @@ jobs:
       - run: echo "MARK after-plugins"
 
       - name: Build debug APK
-        run: npx cordova build android --verbose -- --stacktrace
+        id: build
+        continue-on-error: true
+        run: |
+          set -o pipefail
+          npx cordova build android --verbose -- --stacktrace 2>&1 | tee /tmp/build.log
       - run: echo "MARK after-build"
 
-      - name: Dump gradle build report on failure
-        if: failure()
+      - name: Publish build log to job summary
+        if: always()
         run: |
-          echo "===== gradle reports ====="
-          find platforms/android/app/build/reports -type f 2>/dev/null | xargs -I{} sh -c 'echo "--- {} ---"; cat {}' || true
-          echo "===== gradle build dir tree ====="
-          ls -la platforms/android/app/build/ 2>/dev/null || true
+          {
+            echo "## Build outcome: ${{ steps.build.outcome }}"
+            echo "## Build log (last 250 lines)"
+            echo '```'
+            tail -250 /tmp/build.log 2>/dev/null || echo "(no build.log captured)"
+            echo '```'
+            echo "## Gradle reports"
+            find platforms/android/app/build/reports -type f 2>/dev/null | while read f; do
+              echo "### $f"
+              echo '```'
+              cat "$f" 2>/dev/null | head -200
+              echo '```'
+            done
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Re-fail if build failed
+        if: steps.build.outcome == 'failure'
+        run: exit 1
 
       - run: npm run pack-client
       - run: echo "MARK after-pack"
