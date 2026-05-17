@@ -17,7 +17,7 @@
     "clean": "rimraf platforms plugins dist www/cordova.js www/cordova_plugins.js www/plugins www/cordova-js-src"
   },
   "devDependencies": {
-    "com-darryncampbell-cordova-plugin-intent": "github:darryncampbell/darryncampbell-cordova-plugin-intent",
+    "com-darryncampbell-cordova-plugin-intent": "git+https://github.com/darryncampbell/darryncampbell-cordova-plugin-intent.git",
     "cordova": "^12.0.0",
     "cordova-android": "^13.0.0",
     "cordova-plugin-android-permissions": "^1.1.5",

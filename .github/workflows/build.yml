@@ -20,20 +20,14 @@ jobs:
         with:
           node-version: '22'
 
-      - name: Diagnostics
+      - name: Force HTTPS for github.com (lockfile contains git+ssh://)
         run: |
-          set -x
-          node --version
-          npm --version
-          ls -la
-          cat package.json
-          head -40 package-lock.json
+          git config --global url."https://github.com/".insteadOf "ssh://git@github.com/"
+          git config --global url."https://github.com/".insteadOf "git@github.com:"
 
-      - name: npm install
-        run: npm install --no-audit --no-fund
+      - run: npm install --no-audit --no-fund
 
-      - name: npm test
-        run: npm test
+      - run: npm test
 
   build-android:
     name: Build Android APK
@@ -51,6 +45,11 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
+
+      - name: Force HTTPS for github.com
+        run: |
+          git config --global url."https://github.com/".insteadOf "ssh://git@github.com/"
+          git config --global url."https://github.com/".insteadOf "git@github.com:"
 
       - name: Set up Android SDK
         uses: android-actions/setup-android@v3
