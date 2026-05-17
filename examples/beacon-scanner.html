@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<!--
+  Copy this file to your web server next to cordova.js + slim-browser-client.js
+  (produced by `npm run pack-client` in the slim-customizable-cordova-browser repo).
+-->
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+    <title>iBeacon Scanner</title>
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, sans-serif; margin: 0; padding: 1rem; background: #1a1a1a; color: #fff; }
+        h1 { font-size: 1.2rem; margin: 0 0 .5rem; }
+        .status { color: #9ca3af; font-size: .85rem; margin-bottom: 1rem; }
+        button { background: #2563eb; color: #fff; border: 0; border-radius: 6px; padding: .6rem 1.1rem; margin: 0 .35rem .5rem 0; font: inherit; }
+        button:active { background: #1d4ed8; }
+        button.secondary { background: #374151; }
+        ul { list-style: none; padding: 0; margin: 1rem 0 0; }
+        li { background: #262626; padding: .75rem; border-radius: 6px; margin-bottom: .5rem; font: .8rem ui-monospace, monospace; }
+        .uuid { color: #60a5fa; }
+        .strong { color: #34d399; }
+    </style>
+</head>
+<body>
+    <h1>iBeacon Scanner</h1>
+    <div class="status" id="status">Initializing…</div>
+    <div>
+        <button id="start">Start scan</button>
+        <button id="stop" class="secondary">Stop</button>
+        <button id="bg" class="secondary">Background ON</button>
+    </div>
+    <ul id="list"></ul>
+
+    <script src="cordova.js"></script>
+    <script src="slim-browser-client.js"></script>
+    <script>
+        // Default region — override per-call if needed
+        window.SLIM_BROWSER_DEFAULT_REGIONS = [
+            { identifier: 'default', uuid: 'B9407F30-F5F8-466E-AFF9-25556B57FE6D' }
+        ];
+
+        const $ = id => document.getElementById(id);
+        const beacons = new Map();
+
+        function render() {
+            const items = [...beacons.values()].sort((a, b) => b.rssi - a.rssi);
+            $('list').innerHTML = items.map(b => `
+                <li>
+                    <div><span class="uuid">${b.uuid}</span></div>
+                    <div>major <span class="strong">${b.major}</span> · minor <span class="strong">${b.minor}</span></div>
+                    <div>${b.proximity} · RSSI ${b.rssi} dBm · ~${(b.accuracy || 0).toFixed(2)} m</div>
+                </li>`).join('');
+        }
+
+        SlimBrowser.ready().then(info => {
+            $('status').textContent = info.standalone
+                ? 'Standalone mode — Cordova bridge unavailable'
+                : 'Connected · ready to scan';
+
+            SlimBrowser.beacons.onRanging(snap => {
+                for (const b of snap.beacons) beacons.set(`${b.uuid}-${b.major}-${b.minor}`, b);
+                render();
+            });
+            SlimBrowser.beacons.onError(err => $('status').textContent = 'Error: ' + err.message);
+        });
+
+        $('start').onclick = () => SlimBrowser.beacons.start();
+        $('stop').onclick  = () => SlimBrowser.beacons.stop();
+        $('bg').onclick    = () => SlimBrowser.background.enable();
+    </script>
+</body>
+</html>

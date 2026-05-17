@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<!--
+  Landing page that links to all demo HTML files. Copy the whole `examples/`
+  folder (plus the contents of `dist/cordova-bridge/`) to your web server's
+  document root, then point customize.json `url` to this page.
+-->
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+    <title>Slim Browser — Demos</title>
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, sans-serif; margin: 0; padding: 1rem; background: #1a1a1a; color: #fff; }
+        h1 { font-size: 1.1rem; margin: 0 0 1rem; opacity: .7; }
+        nav a { color: #60a5fa; display: block; padding: 1rem; background: #262626; border-radius: 6px; margin-bottom: .5rem; text-decoration: none; }
+        nav small { display: block; color: #9ca3af; font-size: .75rem; margin-top: .2rem; }
+    </style>
+</head>
+<body>
+    <h1>Slim Browser Demos</h1>
+    <nav>
+        <a href="beacon-scanner.html">iBeacon Scanner<small>cordova-plugin-ibeacon + background mode</small></a>
+        <a href="qr-scanner.html">QR Code Scanner<small>html5-qrcode (camera via WebView)</small></a>
+        <a href="nfc-reader.html">WebNFC Reader<small>standard NDEFReader API</small></a>
+        <a href="all-in-one.html">All-in-one demo<small>everything on one page</small></a>
+    </nav>
+</body>
+</html>

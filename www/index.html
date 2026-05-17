@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<!--
+  Local fallback page. The app loads this only when customize.json `url`
+  is missing or unreachable (otherwise `<content src>` in config.xml points
+  straight at the remote URL).
+-->
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self' 'unsafe-inline' data: blob: gap:; img-src * data: blob:;">
+    <title>Slim Browser</title>
+    <link rel="stylesheet" href="css/app.css">
+</head>
+<body>
+    <div class="fallback">
+        <h1 id="title">Slim Browser</h1>
+        <p>No remote URL is configured for this build.</p>
+        <p>Edit <code>customize.json</code> → <code>url</code>, run
+            <code>npm run setup</code> and rebuild.</p>
+        <p id="cfg-url"></p>
+    </div>
+    <script src="cordova.js"></script>
+    <script src="js/config.js"></script>
+    <script src="js/app.js"></script>
+</body>
+</html>

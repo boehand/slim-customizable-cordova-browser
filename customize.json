@@ -1,0 +1,53 @@
+{
+  "appId": "com.example.slimbrowser",
+  "appName": "Slim Browser",
+  "version": "1.0.0",
+  "description": "Customizable Cordova browser with iBeacon scanning",
+  "author": {
+    "name": "Your Name",
+    "email": "you@example.com",
+    "url": "https://example.com"
+  },
+  "url": "https://your-node-red.example.com/ui",
+  "ui": {
+    "splashColor": "#1a1a1a",
+    "splashTextColor": "#ffffff",
+    "loadingText": "Loading…",
+    "showErrorOnFailure": true,
+    "showReloadButton": true
+  },
+  "beacons": {
+    "autoStart": true,
+    "background": true,
+    "regions": [
+      {
+        "identifier": "default-region",
+        "uuid": "B9407F30-F5F8-466E-AFF9-25556B57FE6D",
+        "major": null,
+        "minor": null
+      }
+    ]
+  },
+  "android": {
+    "minSdkVersion": 23,
+    "targetSdkVersion": 34,
+    "permissions": {
+      "backgroundLocation": true,
+      "bluetoothScan": true,
+      "foregroundService": true,
+      "camera": true,
+      "nfc": true
+    },
+    "allowMixedContent": false
+  },
+  "features": {
+    "webnfc": true,
+    "qrScanner": true
+  },
+  "navigation": {
+    "allowedOrigins": [
+      "https://your-node-red.example.com/*",
+      "http://192.168.*.*:*/*"
+    ]
+  }
+}

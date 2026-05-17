@@ -1,0 +1,164 @@
+name: build
+
+on:
+  push:
+    branches: [main, "claude/**"]
+    paths-ignore: ["logs/**"]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+  issues: write
+
+jobs:
+  test:
+    name: Unit + integration tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Force HTTPS for github.com (lockfile contains git+ssh://)
+        run: |
+          git config --global url."https://github.com/".insteadOf "ssh://git@github.com/"
+          git config --global url."https://github.com/".insteadOf "git@github.com:"
+
+      - run: npm install --no-audit --no-fund
+
+      - run: npm test
+
+  build-android:
+    name: Build Android APK
+    needs: test
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - run: echo "MARK after-checkout"
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+      - run: echo "MARK after-setup-java"; java -version
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: echo "MARK after-setup-node"; node --version; npm --version
+
+      - name: Force HTTPS for github.com
+        run: |
+          git config --global url."https://github.com/".insteadOf "ssh://git@github.com/"
+          git config --global url."https://github.com/".insteadOf "git@github.com:"
+      - run: echo "MARK after-git-config"
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+        with:
+          packages: 'platform-tools platforms;android-34 build-tools;34.0.0'
+      - run: |
+          echo "MARK after-setup-android"
+          echo "ANDROID_HOME=$ANDROID_HOME"
+          ls -la "$ANDROID_HOME" || true
+          "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --list_installed || true
+
+      - run: npm install --no-audit --no-fund
+      - run: echo "MARK after-npm-install"
+
+      - run: npm run customize
+      - run: echo "MARK after-customize"
+
+      - run: npx cordova platform add android@13.0.0
+      - run: echo "MARK after-platform-add"
+
+      - name: Install Cordova plugins
+        run: |
+          npx cordova plugin add cordova-plugin-ibeacon@3.8.1
+          npx cordova plugin add cordova-plugin-background-mode-fixes@0.7.6
+          npx cordova plugin add cordova-plugin-android-permissions@1.1.5
+          npx cordova plugin add https://github.com/darryncampbell/darryncampbell-cordova-plugin-intent.git
+          npx cordova plugin add cordova-plugin-androidx-adapter
+      - run: echo "MARK after-plugins"
+
+      - name: Build debug APK
+        id: build
+        continue-on-error: true
+        run: |
+          set -o pipefail
+          npx cordova build android --verbose -- --stacktrace 2>&1 | tee /tmp/build.log
+      - run: echo "MARK after-build"
+
+      - name: Publish build log to job summary
+        if: always()
+        run: |
+          {
+            echo "## Build outcome: ${{ steps.build.outcome }}"
+            echo "## Build log (last 250 lines)"
+            echo '```'
+            tail -250 /tmp/build.log 2>/dev/null || echo "(no build.log captured)"
+            echo '```'
+            echo "## Gradle reports"
+            find platforms/android/app/build/reports -type f 2>/dev/null | while read f; do
+              echo "### $f"
+              echo '```'
+              cat "$f" 2>/dev/null | head -200
+              echo '```'
+            done
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Commit build log to ci-logs branch
+        if: always()
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -x
+          mkdir /tmp/logrepo && cd /tmp/logrepo
+          git init -q -b ci-logs
+          git config user.email "ci@local"
+          git config user.name "ci"
+          mkdir -p logs
+          SHA=${{ github.sha }}
+          {
+            echo "outcome=${{ steps.build.outcome }}"
+            echo "run=${{ github.run_id }}  job=$GITHUB_JOB"
+            echo "===== build log (tail 400 lines) ====="
+            tail -400 /tmp/build.log 2>/dev/null || echo "(no log)"
+            echo
+            echo "===== gradle reports ====="
+            find ${{ github.workspace }}/platforms/android/app/build/reports -type f 2>/dev/null | while read f; do
+              echo "--- $f ---"
+              head -300 "$f"
+            done
+          } > "logs/${SHA}.txt"
+          git add logs
+          git commit -q -m "ci log $SHA"
+          git push -f "https://x-access-token:$GH_TOKEN@github.com/${{ github.repository }}" ci-logs
+
+      - name: Re-fail if build failed
+        if: steps.build.outcome == 'failure'
+        run: exit 1
+
+      - run: npm run pack-client
+      - run: echo "MARK after-pack"
+
+      - name: Upload debug APK
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: slim-browser-debug-apk
+          path: platforms/android/app/build/outputs/apk/debug/*.apk
+          if-no-files-found: warn
+
+      - name: Upload cordova-bridge
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: cordova-bridge
+          path: dist/cordova-bridge/
+          if-no-files-found: warn

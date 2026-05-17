@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<!--
+  Copy this file to your web server. Uses the standard WebNFC API.
+  Requires Android Chrome WebView >= 89 and HTTPS (or localhost).
+-->
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+    <title>WebNFC Reader</title>
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, sans-serif; margin: 0; padding: 1rem; background: #1a1a1a; color: #fff; }
+        h1 { font-size: 1.2rem; margin: 0 0 .5rem; }
+        p { color: #9ca3af; font-size: .9rem; }
+        button { background: #2563eb; color: #fff; border: 0; border-radius: 6px; padding: .6rem 1.1rem; font: inherit; margin-right: .5rem; }
+        button.secondary { background: #374151; }
+        #log { background: #262626; padding: 1rem; border-radius: 6px; margin-top: 1rem; font: .8rem ui-monospace, monospace; white-space: pre-wrap; max-height: 60vh; overflow: auto; }
+    </style>
+</head>
+<body>
+    <h1>WebNFC Reader</h1>
+    <p>Press <b>Scan</b>, then hold an NDEF tag near the device.</p>
+    <button id="scan">Scan</button>
+    <button id="clear" class="secondary">Clear log</button>
+    <div id="log"></div>
+
+    <script>
+        const log = document.getElementById('log');
+        const append = (line) => { log.textContent += line + '\n'; log.scrollTop = log.scrollHeight; };
+
+        document.getElementById('clear').onclick = () => log.textContent = '';
+
+        document.getElementById('scan').onclick = async () => {
+            if (!('NDEFReader' in window)) {
+                append('WebNFC not supported in this WebView.');
+                return;
+            }
+            try {
+                const reader = new NDEFReader();
+                await reader.scan();
+                append('Scanning… (tap a tag to read)');
+                reader.onreadingerror = () => append('Reading error');
+                reader.onreading = (e) => {
+                    append('--- Tag ' + (e.serialNumber || '') + ' ---');
+                    for (const rec of e.message.records) {
+                        append('recordType=' + rec.recordType + ' mediaType=' + (rec.mediaType || '-'));
+                        if (rec.data) {
+                            try {
+                                const td = new TextDecoder(rec.encoding || 'utf-8');
+                                append('  ' + td.decode(rec.data));
+                            } catch (_) {
+                                append('  (binary, ' + rec.data.byteLength + ' bytes)');
+                            }
+                        }
+                    }
+                };
+            } catch (err) {
+                append('Error: ' + err.message);
+            }
+        };
+    </script>
+</body>
+</html>
