@@ -111,40 +111,33 @@ jobs:
             done
           } >> "$GITHUB_STEP_SUMMARY"
 
-      - name: Post build log as PR comment on failure
-        if: steps.build.outcome == 'failure' && github.event_name == 'pull_request'
+      - name: Commit build log to ci-logs branch
+        if: always()
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
+          set -x
+          mkdir /tmp/logrepo && cd /tmp/logrepo
+          git init -q -b ci-logs
+          git config user.email "ci@local"
+          git config user.name "ci"
+          mkdir -p logs
+          SHA=${{ github.sha }}
           {
-            echo "### 🔴 Gradle build failed (\`${{ github.sha }}\`)"
-            echo ""
-            echo "<details><summary>Build log — last 250 lines</summary>"
-            echo ""
-            echo '```'
-            tail -250 /tmp/build.log 2>/dev/null || echo "(no /tmp/build.log captured)"
-            echo '```'
-            echo ""
-            echo "</details>"
-            echo ""
-            REPORTS=$(find platforms/android/app/build/reports -type f 2>/dev/null)
-            if [ -n "$REPORTS" ]; then
-              echo "<details><summary>Gradle reports</summary>"
-              for f in $REPORTS; do
-                echo ""
-                echo "**${f}**"
-                echo ""
-                echo '```'
-                head -200 "$f"
-                echo '```'
-              done
-              echo ""
-              echo "</details>"
-            fi
-          } > /tmp/comment.md
-          gh pr comment ${{ github.event.pull_request.number }} \
-            --repo ${{ github.repository }} \
-            --body-file /tmp/comment.md
+            echo "outcome=${{ steps.build.outcome }}"
+            echo "run=${{ github.run_id }}  job=$GITHUB_JOB"
+            echo "===== build log (tail 400 lines) ====="
+            tail -400 /tmp/build.log 2>/dev/null || echo "(no log)"
+            echo
+            echo "===== gradle reports ====="
+            find ${{ github.workspace }}/platforms/android/app/build/reports -type f 2>/dev/null | while read f; do
+              echo "--- $f ---"
+              head -300 "$f"
+            done
+          } > "logs/${SHA}.txt"
+          git add logs
+          git commit -q -m "ci log $SHA"
+          git push -f "https://x-access-token:$GH_TOKEN@github.com/${{ github.repository }}" ci-logs
 
       - name: Re-fail if build failed
         if: steps.build.outcome == 'failure'
