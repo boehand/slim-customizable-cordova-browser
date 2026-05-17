@@ -1,0 +1,42 @@
+<!--
+  Drop this into a Node-RED Dashboard `ui_template` widget (group/page of your choice).
+  Make sure cordova.js + slim-browser-client.js are reachable from the dashboard origin —
+  the easiest way is to put both files into Node-RED's `static` directory:
+
+      settings.js → httpStatic: '/data/static'
+      then drop cordova.js, cordova_plugins.js, plugins/, slim-browser-client.js
+      into /data/static/cordova-bridge/
+
+  The page configured as `url` in customize.json should be the Node-RED dashboard URL.
+-->
+<script src="cordova-bridge/cordova.js"></script>
+<script src="cordova-bridge/slim-browser-client.js"></script>
+
+<div layout="row" layout-align="start center" style="gap:.5rem;">
+    <md-button class="md-raised md-primary" ng-click="start()">Start</md-button>
+    <md-button class="md-raised" ng-click="stop()">Stop</md-button>
+    <md-button class="md-raised" ng-click="enableBg()">Background</md-button>
+</div>
+
+<pre id="beacons-out" style="background:#222;color:#fff;padding:.5rem;border-radius:6px;max-height:240px;overflow:auto;"></pre>
+
+<script>
+(function (scope) {
+    window.SLIM_BROWSER_DEFAULT_REGIONS = [
+        { identifier: 'default', uuid: 'B9407F30-F5F8-466E-AFF9-25556B57FE6D' }
+    ];
+
+    scope.start    = () => SlimBrowser.beacons.start();
+    scope.stop     = () => SlimBrowser.beacons.stop();
+    scope.enableBg = () => SlimBrowser.background.enable();
+
+    const out = document.getElementById('beacons-out');
+    SlimBrowser.ready().then(() => {
+        SlimBrowser.beacons.onRanging(snap => {
+            out.textContent = JSON.stringify(snap.beacons, null, 2);
+            // Forward to Node-RED:
+            scope.send({ payload: snap });
+        });
+    });
+})(scope);
+</script>

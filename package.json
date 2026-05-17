@@ -1,0 +1,35 @@
+{
+  "name": "slim-customizable-cordova-browser",
+  "version": "1.0.0",
+  "description": "Slim, customizable Cordova browser shell with iBeacon scanning and background mode.",
+  "private": true,
+  "scripts": {
+    "setup": "node scripts/customize.js && cordova prepare",
+    "customize": "node scripts/customize.js",
+    "platform:add:android": "cordova platform add android@13.0.0",
+    "plugins:add": "cordova plugin add cordova-plugin-ibeacon@3.8.1 cordova-plugin-background-mode-fixes cordova-plugin-intentshim cordova-plugin-android-permissions",
+    "prepare:android": "npm run setup && npm run platform:add:android && npm run plugins:add",
+    "build:android": "npm run setup && cordova build android && npm run pack-client",
+    "build:android:release": "npm run setup && cordova build android --release && npm run pack-client",
+    "run:android": "npm run setup && cordova run android",
+    "pack-client": "node scripts/pack-client.js",
+    "clean": "rimraf platforms plugins dist www/cordova.js www/cordova_plugins.js www/plugins www/cordova-js-src"
+  },
+  "devDependencies": {
+    "cordova": "^12.0.0",
+    "cordova-android": "^13.0.0",
+    "rimraf": "^5.0.5"
+  },
+  "cordova": {
+    "platforms": [
+      "android"
+    ],
+    "plugins": {
+      "cordova-plugin-ibeacon": {},
+      "cordova-plugin-background-mode-fixes": {},
+      "cordova-plugin-intentshim": {},
+      "cordova-plugin-android-permissions": {}
+    }
+  },
+  "license": "Apache-2.0"
+}

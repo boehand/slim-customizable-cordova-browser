@@ -1,0 +1,15 @@
+node_modules/
+platforms/
+plugins/
+www/cordova_plugins.js
+www/cordova.js
+www/cordova-js-src/
+www/plugins/
+www/js/config.js
+config.xml
+*.apk
+*.aab
+.DS_Store
+.idea/
+.vscode/
+build/

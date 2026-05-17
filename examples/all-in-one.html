@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<!--
+  Combined demo: iBeacon scanning + WebNFC + html5-qrcode + Android Intent.
+  Copy this file to your web server next to:
+    - cordova.js
+    - cordova_plugins.js
+    - plugins/   (folder)
+    - slim-browser-client.js
+  All produced by `npm run pack-client` in the slim-customizable-cordova-browser repo.
+-->
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+    <title>Slim Browser — All-in-one Demo</title>
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, sans-serif; margin: 0; background: #0f172a; color: #e5e7eb; }
+        header { background: #1e293b; padding: .9rem 1rem; display: flex; gap: .5rem; flex-wrap: wrap; }
+        header button { background: #2563eb; color: #fff; border: 0; border-radius: 6px; padding: .55rem 1rem; font: inherit; }
+        header button.active { background: #16a34a; }
+        main { padding: 1rem; }
+        section { display: none; }
+        section.active { display: block; }
+        h2 { font-size: 1rem; margin: .5rem 0; color: #93c5fd; }
+        .row { background: #1e293b; padding: .75rem; border-radius: 6px; margin-bottom: .5rem; font: .8rem ui-monospace, monospace; }
+        .btn { background: #2563eb; color: #fff; border: 0; border-radius: 6px; padding: .55rem 1rem; margin: 0 .3rem .5rem 0; font: inherit; }
+        .btn.gray { background: #374151; }
+        #reader { max-width: 480px; }
+        #log { background: #1e293b; padding: 1rem; border-radius: 6px; font: .75rem ui-monospace, monospace; white-space: pre-wrap; max-height: 50vh; overflow: auto; }
+    </style>
+</head>
+<body>
+<header>
+    <button data-tab="beacons" class="active">Beacons</button>
+    <button data-tab="nfc">WebNFC</button>
+    <button data-tab="qr">QR</button>
+    <button data-tab="intent">Intent</button>
+</header>
+
+<main>
+    <section id="beacons" class="active">
+        <h2>iBeacon Scanner</h2>
+        <button id="b-start" class="btn">Start</button>
+        <button id="b-stop"  class="btn gray">Stop</button>
+        <button id="b-bg"    class="btn gray">Background ON</button>
+        <div id="beacons-list"></div>
+    </section>
+
+    <section id="nfc">
+        <h2>WebNFC Reader</h2>
+        <button id="n-scan" class="btn">Scan</button>
+        <div id="nfc-out" class="row">Press Scan and hold a tag near the device.</div>
+    </section>
+
+    <section id="qr">
+        <h2>QR Scanner</h2>
+        <div id="reader"></div>
+        <div id="qr-out" class="row" style="margin-top:.5rem;">No code yet.</div>
+    </section>
+
+    <section id="intent">
+        <h2>Android Intents</h2>
+        <button id="i-maps" class="btn">Open Maps (geo:)</button>
+        <button id="i-tel"  class="btn">Dial number</button>
+        <div id="intent-log" class="row">Incoming intents will appear here.</div>
+    </section>
+
+    <h2 style="margin-top:1.5rem;">Log</h2>
+    <div id="log"></div>
+</main>
+
+<script src="cordova.js"></script>
+<script src="slim-browser-client.js"></script>
+<script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+<script>
+window.SLIM_BROWSER_DEFAULT_REGIONS = [
+    { identifier: 'default', uuid: 'B9407F30-F5F8-466E-AFF9-25556B57FE6D' }
+];
+
+const $ = id => document.getElementById(id);
+const log = (msg) => { const l = $('log'); l.textContent += msg + '\n'; l.scrollTop = l.scrollHeight; };
+
+// Tabs
+for (const btn of document.querySelectorAll('header button')) {
+    btn.onclick = () => {
+        document.querySelectorAll('header button').forEach(b => b.classList.remove('active'));
+        document.querySelectorAll('section').forEach(s => s.classList.remove('active'));
+        btn.classList.add('active');
+        $(btn.dataset.tab).classList.add('active');
+    };
+}
+
+// Beacons
+const beaconMap = new Map();
+function renderBeacons() {
+    const items = [...beaconMap.values()].sort((a, b) => b.rssi - a.rssi);
+    $('beacons-list').innerHTML = items.map(b => `
+        <div class="row">${b.uuid}<br>M ${b.major} · m ${b.minor} · ${b.proximity} · ${b.rssi} dBm · ~${(b.accuracy || 0).toFixed(2)} m</div>
+    `).join('');
+}
+
+SlimBrowser.ready().then(info => {
+    log(info.standalone ? 'Standalone mode (Cordova bridge unavailable)' : 'Cordova ready');
+    SlimBrowser.beacons.onRanging(snap => {
+        for (const b of snap.beacons) beaconMap.set(`${b.uuid}-${b.major}-${b.minor}`, b);
+        renderBeacons();
+    });
+    SlimBrowser.beacons.onError(e => log('Beacon error: ' + e.message));
+    SlimBrowser.intent.onReceived(i => {
+        $('intent-log').textContent = JSON.stringify(i, null, 2);
+        log('Intent received: ' + (i.action || '(no action)'));
+    });
+});
+
+$('b-start').onclick = () => SlimBrowser.beacons.start().then(() => log('Scan started'));
+$('b-stop').onclick  = () => SlimBrowser.beacons.stop().then(() => log('Scan stopped'));
+$('b-bg').onclick    = () => { SlimBrowser.background.enable(); log('Background enabled'); };
+
+// WebNFC
+$('n-scan').onclick = async () => {
+    if (!('NDEFReader' in window)) { $('nfc-out').textContent = 'WebNFC not supported'; return; }
+    const reader = new NDEFReader();
+    try {
+        await reader.scan();
+        $('nfc-out').textContent = 'Scanning…';
+        reader.onreading = e => {
+            const recs = e.message.records.map(r => {
+                let val = '';
+                if (r.data) { try { val = new TextDecoder(r.encoding || 'utf-8').decode(r.data); } catch (_) {} }
+                return `${r.recordType}: ${val}`;
+            }).join('\n');
+            $('nfc-out').textContent = 'Tag ' + (e.serialNumber || '') + '\n' + recs;
+        };
+    } catch (e) { $('nfc-out').textContent = 'Error: ' + e.message; }
+};
+
+// QR
+const qr = new Html5QrcodeScanner('reader', { fps: 10, qrbox: 250 }, false);
+qr.render(text => $('qr-out').textContent = text, () => {});
+
+// Intents
+$('i-maps').onclick = () => SlimBrowser.intent.send({
+    action: 'android.intent.action.VIEW',
+    url: 'geo:52.520008,13.404954?q=Berlin'
+}).catch(e => log('Intent error: ' + e.message));
+
+$('i-tel').onclick = () => SlimBrowser.intent.send({
+    action: 'android.intent.action.DIAL',
+    url: 'tel:+491701234567'
+}).catch(e => log('Intent error: ' + e.message));
+</script>
+</body>
+</html>

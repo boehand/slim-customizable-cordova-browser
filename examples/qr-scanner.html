@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<!--
+  Copy this file to your web server. Uses html5-qrcode from a CDN.
+  Camera permission is granted by the native shell.
+-->
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+    <title>QR Scanner</title>
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, sans-serif; margin: 0; padding: 1rem; background: #1a1a1a; color: #fff; }
+        h1 { font-size: 1.2rem; margin: 0 0 1rem; }
+        #reader { width: 100%; max-width: 480px; margin: 0 auto; }
+        #result { background: #262626; padding: 1rem; border-radius: 6px; margin: 1rem 0; word-break: break-all; font: .85rem ui-monospace, monospace; min-height: 1.2rem; }
+        button { background: #2563eb; color: #fff; border: 0; border-radius: 6px; padding: .6rem 1.1rem; font: inherit; }
+    </style>
+</head>
+<body>
+    <h1>QR Code Scanner</h1>
+    <div id="reader"></div>
+    <div id="result">No code scanned yet.</div>
+    <button id="restart">Restart scanner</button>
+
+    <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+    <script>
+        let scanner;
+        const result = document.getElementById('result');
+
+        function start() {
+            if (scanner) scanner.clear().catch(() => {});
+            scanner = new Html5QrcodeScanner('reader', {
+                fps: 10,
+                qrbox: { width: 250, height: 250 },
+                rememberLastUsedCamera: true,
+                showTorchButtonIfSupported: true
+            }, false);
+            scanner.render(
+                text => {
+                    result.textContent = text;
+                    // Try to parse as URL and open via Android Intent if available
+                    if (window.SlimBrowser && SlimBrowser.inShell() && /^https?:\/\//i.test(text)) {
+                        SlimBrowser.intent.send({ action: 'android.intent.action.VIEW', url: text }).catch(() => {});
+                    }
+                },
+                () => {}
+            );
+        }
+
+        document.getElementById('restart').onclick = start;
+        start();
+    </script>
+</body>
+</html>
