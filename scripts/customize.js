@@ -58,6 +58,8 @@ function buildConfigXml(c) {
     <description>${escapeXml(c.description || '')}</description>
     <author email="${escapeXml(author.email || '')}" href="${escapeXml(author.url || '')}">${escapeXml(author.name || '')}</author>
     <content src="${escapeXml(contentSrc)}" />
+    <hook type="before_build" src="hooks/patch-legacy-gradle.js" />
+    <hook type="before_compile" src="hooks/patch-legacy-gradle.js" />
     <access origin="*" />
 ${allowList}
     <allow-intent href="http://*/*" />
