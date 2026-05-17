@@ -80,10 +80,20 @@ jobs:
           npx cordova plugin add cordova-plugin-background-mode-fixes@0.7.6
           npx cordova plugin add cordova-plugin-android-permissions@1.1.5
           npx cordova plugin add https://github.com/darryncampbell/darryncampbell-cordova-plugin-intent.git
+          npx cordova plugin add cordova-plugin-androidx-adapter
       - run: echo "MARK after-plugins"
 
-      - run: npx cordova build android
+      - name: Build debug APK
+        run: npx cordova build android --verbose -- --stacktrace
       - run: echo "MARK after-build"
+
+      - name: Dump gradle build report on failure
+        if: failure()
+        run: |
+          echo "===== gradle reports ====="
+          find platforms/android/app/build/reports -type f 2>/dev/null | xargs -I{} sh -c 'echo "--- {} ---"; cat {}' || true
+          echo "===== gradle build dir tree ====="
+          ls -la platforms/android/app/build/ 2>/dev/null || true
 
       - run: npm run pack-client
       - run: echo "MARK after-pack"
