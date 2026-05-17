@@ -28,7 +28,11 @@ module.exports = function (ctx) {
         [/^(\s*)testCompile(\s+["'])/gm, '$1testImplementation$2'],
         [/^(\s*)androidTestCompile(\s+["'])/gm, '$1androidTestImplementation$2'],
         [/^(\s*)provided(\s+["'])/gm, '$1compileOnly$2'],
-        [/^(\s*)apk(\s+["'])/gm, '$1runtimeOnly$2']
+        [/^(\s*)apk(\s+["'])/gm, '$1runtimeOnly$2'],
+        // JCenter has been read-only since 2021 and many old versions are gone.
+        // Maven Central does not host altbeacon 2.16.1; bump to the latest 2.x.
+        [/\bjcenter\s*\(\s*\)/g, 'mavenCentral()'],
+        [/org\.altbeacon:android-beacon-library:2\.16\.1\b/g, 'org.altbeacon:android-beacon-library:2.20.6']
     ];
 
     const visit = (dir) => {
