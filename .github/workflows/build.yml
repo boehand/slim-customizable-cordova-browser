@@ -19,11 +19,21 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
-          cache: 'npm'
 
-      - run: npm install
+      - name: Diagnostics
+        run: |
+          set -x
+          node --version
+          npm --version
+          ls -la
+          cat package.json
+          head -40 package-lock.json
 
-      - run: npm test
+      - name: npm install
+        run: npm install --no-audit --no-fund
+
+      - name: npm test
+        run: npm test
 
   build-android:
     name: Build Android APK
@@ -41,7 +51,6 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
-          cache: 'npm'
 
       - name: Set up Android SDK
         uses: android-actions/setup-android@v3
