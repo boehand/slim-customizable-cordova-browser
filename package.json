@@ -13,6 +13,7 @@
     "build:android:release": "npm run setup && cordova build android --release && npm run pack-client",
     "run:android": "npm run setup && cordova run android",
     "pack-client": "node scripts/pack-client.js",
+    "test": "node --test test/*.test.js",
     "clean": "rimraf platforms plugins dist www/cordova.js www/cordova_plugins.js www/plugins www/cordova-js-src"
   },
   "devDependencies": {

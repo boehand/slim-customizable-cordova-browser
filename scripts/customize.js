@@ -124,9 +124,18 @@ function main() {
   console.log('[customize] App:', c.appName, '(' + c.appId + ')  →', c.url);
 }
 
-try {
-  main();
-} catch (e) {
-  console.error('[customize] ERROR:', e.message);
-  process.exit(1);
+if (require.main === module) {
+  try {
+    main();
+  } catch (e) {
+    console.error('[customize] ERROR:', e.message);
+    process.exit(1);
+  }
 }
+
+module.exports = {
+  escapeXml,
+  buildAllowList,
+  buildConfigXml,
+  buildClientConfig
+};
