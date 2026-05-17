@@ -8,6 +8,8 @@ on:
 
 permissions:
   contents: read
+  pull-requests: write
+  issues: write
 
 jobs:
   test:
@@ -108,6 +110,41 @@ jobs:
               echo '```'
             done
           } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Post build log as PR comment on failure
+        if: steps.build.outcome == 'failure' && github.event_name == 'pull_request'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          {
+            echo "### 🔴 Gradle build failed (\`${{ github.sha }}\`)"
+            echo ""
+            echo "<details><summary>Build log — last 250 lines</summary>"
+            echo ""
+            echo '```'
+            tail -250 /tmp/build.log 2>/dev/null || echo "(no /tmp/build.log captured)"
+            echo '```'
+            echo ""
+            echo "</details>"
+            echo ""
+            REPORTS=$(find platforms/android/app/build/reports -type f 2>/dev/null)
+            if [ -n "$REPORTS" ]; then
+              echo "<details><summary>Gradle reports</summary>"
+              for f in $REPORTS; do
+                echo ""
+                echo "**${f}**"
+                echo ""
+                echo '```'
+                head -200 "$f"
+                echo '```'
+              done
+              echo ""
+              echo "</details>"
+            fi
+          } > /tmp/comment.md
+          gh pr comment ${{ github.event.pull_request.number }} \
+            --repo ${{ github.repository }} \
+            --body-file /tmp/comment.md
 
       - name: Re-fail if build failed
         if: steps.build.outcome == 'failure'
