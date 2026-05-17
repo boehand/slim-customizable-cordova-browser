@@ -36,37 +36,43 @@ jobs:
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
+      - run: echo "MARK after-checkout"
 
       - uses: actions/setup-java@v4
         with:
           distribution: 'temurin'
           java-version: '17'
+      - run: echo "MARK after-setup-java"; java -version
 
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
+      - run: echo "MARK after-setup-node"; node --version; npm --version
 
       - name: Force HTTPS for github.com
         run: |
           git config --global url."https://github.com/".insteadOf "ssh://git@github.com/"
           git config --global url."https://github.com/".insteadOf "git@github.com:"
+      - run: echo "MARK after-git-config"
 
       - name: Set up Android SDK
         uses: android-actions/setup-android@v3
         with:
-          packages: |
-            platform-tools
-            platforms;android-34
-            build-tools;34.0.0
+          packages: 'platform-tools platforms;android-34 build-tools;34.0.0'
+      - run: |
+          echo "MARK after-setup-android"
+          echo "ANDROID_HOME=$ANDROID_HOME"
+          ls -la "$ANDROID_HOME" || true
+          "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --list_installed || true
 
-      - name: Install dependencies
-        run: npm install
+      - run: npm install --no-audit --no-fund
+      - run: echo "MARK after-npm-install"
 
-      - name: Generate config.xml from customize.json
-        run: npm run customize
+      - run: npm run customize
+      - run: echo "MARK after-customize"
 
-      - name: Add Android platform
-        run: npx cordova platform add android@13.0.0
+      - run: npx cordova platform add android@13.0.0
+      - run: echo "MARK after-platform-add"
 
       - name: Install Cordova plugins
         run: |
@@ -74,23 +80,26 @@ jobs:
           npx cordova plugin add cordova-plugin-background-mode-fixes@0.7.6
           npx cordova plugin add cordova-plugin-android-permissions@1.1.5
           npx cordova plugin add https://github.com/darryncampbell/darryncampbell-cordova-plugin-intent.git
+      - run: echo "MARK after-plugins"
 
-      - name: Build debug APK
-        run: npx cordova build android
+      - run: npx cordova build android
+      - run: echo "MARK after-build"
 
-      - name: Pack cordova-bridge for web server
-        run: npm run pack-client
+      - run: npm run pack-client
+      - run: echo "MARK after-pack"
 
       - name: Upload debug APK
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: slim-browser-debug-apk
           path: platforms/android/app/build/outputs/apk/debug/*.apk
-          if-no-files-found: error
+          if-no-files-found: warn
 
       - name: Upload cordova-bridge
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: cordova-bridge
           path: dist/cordova-bridge/
-          if-no-files-found: error
+          if-no-files-found: warn
