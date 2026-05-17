@@ -133,9 +133,8 @@
     }
 
     function intentShim() {
-        const p = global.plugins;
-        if (!p || !p.intentShim) throw new Error('cordova-plugin-intentshim not available');
-        return p.intentShim;
+        if (!global.intentShim) throw new Error('darryncampbell-cordova-plugin-intent not available');
+        return global.intentShim;
     }
 
     function startIntentListening() {

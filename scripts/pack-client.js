@@ -38,32 +38,44 @@ function copyDir(src, dst) {
   }
 }
 
-function main() {
-  if (!fs.existsSync(SRC)) {
-    console.error('[pack-client] Cordova assets not found at', SRC);
-    console.error('[pack-client] Run `npm run prepare:android` first.');
-    process.exit(1);
+function packClient(src, dst, clientPath) {
+  if (!fs.existsSync(src)) {
+    throw new Error('Cordova assets not found at ' + src + ' — run `npm run prepare:android` first.');
   }
-  rmrf(DST);
-  fs.mkdirSync(DST, { recursive: true });
+  rmrf(dst);
+  fs.mkdirSync(dst, { recursive: true });
 
   const targets = ['cordova.js', 'cordova_plugins.js'];
   for (const t of targets) {
-    const s = path.join(SRC, t);
+    const s = path.join(src, t);
     if (!fs.existsSync(s)) {
-      console.error('[pack-client] missing', t, 'in platform assets');
-      process.exit(1);
+      throw new Error('missing ' + t + ' in platform assets');
     }
-    fs.copyFileSync(s, path.join(DST, t));
+    fs.copyFileSync(s, path.join(dst, t));
   }
-  const pluginsDir = path.join(SRC, 'plugins');
+  const pluginsDir = path.join(src, 'plugins');
   if (fs.existsSync(pluginsDir)) {
-    copyDir(pluginsDir, path.join(DST, 'plugins'));
+    copyDir(pluginsDir, path.join(dst, 'plugins'));
   }
-  fs.copyFileSync(CLIENT, path.join(DST, 'slim-browser-client.js'));
+  if (clientPath && fs.existsSync(clientPath)) {
+    fs.copyFileSync(clientPath, path.join(dst, path.basename(clientPath)));
+  }
+  return dst;
+}
 
-  console.log('[pack-client] Wrote', path.relative(ROOT, DST));
+function main() {
+  const out = packClient(SRC, DST, CLIENT);
+  console.log('[pack-client] Wrote', path.relative(ROOT, out));
   console.log('[pack-client] Upload this folder to your web server and reference its files from your page.');
 }
 
-main();
+if (require.main === module) {
+  try {
+    main();
+  } catch (e) {
+    console.error('[pack-client]', e.message);
+    process.exit(1);
+  }
+}
+
+module.exports = { packClient };

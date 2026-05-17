@@ -13,3 +13,4 @@ config.xml
 .idea/
 .vscode/
 build/
+dist/

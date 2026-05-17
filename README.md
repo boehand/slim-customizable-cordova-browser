@@ -36,6 +36,27 @@ WebView falls back to a small local instruction page in `www/`.
 
 ---
 
+## Build pipeline status
+
+The pipeline was end-to-end verified up to the Android-SDK boundary:
+
+| Step | Verified | Notes |
+|---|---|---|
+| `npm install` | ✅ | Cordova 12 + cordova-android 13 |
+| `npm run customize` | ✅ | Generates `config.xml` + `www/js/config.js` |
+| `cordova platform add android@13.0.0` | ✅ | |
+| `cordova plugin add cordova-plugin-ibeacon@3.8.1` | ✅ | `cordova.plugins.locationManager` |
+| `cordova plugin add cordova-plugin-background-mode-fixes@0.7.6` | ✅ | `cordova.plugins.backgroundMode` |
+| `cordova plugin add darryncampbell-cordova-plugin-intent` (Git) | ✅ | `window.intentShim` |
+| `cordova plugin add cordova-plugin-android-permissions@1.1.5` | ✅ | |
+| `cordova prepare android` | ✅ | Bridges + plugin JS landed in `platforms/.../assets/www/` |
+| `npm run pack-client` | ✅ | `dist/cordova-bridge/` populated |
+| `cordova build android` | ⛔️ | Needs `ANDROID_HOME` + Android SDK (API 34) on the host |
+| `npm test` | ✅ | 19 unit + integration tests pass |
+
+> The intent plugin is pulled from its GitHub repository because the package
+> is no longer published to npm under its original name.
+
 ## Quick start
 
 Requirements:

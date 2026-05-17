@@ -7,7 +7,7 @@
     "setup": "node scripts/customize.js && cordova prepare",
     "customize": "node scripts/customize.js",
     "platform:add:android": "cordova platform add android@13.0.0",
-    "plugins:add": "cordova plugin add cordova-plugin-ibeacon@3.8.1 cordova-plugin-background-mode-fixes cordova-plugin-intentshim cordova-plugin-android-permissions",
+    "plugins:add": "cordova plugin add cordova-plugin-ibeacon@3.8.1 cordova-plugin-background-mode-fixes@0.7.6 https://github.com/darryncampbell/darryncampbell-cordova-plugin-intent.git cordova-plugin-android-permissions@1.1.5",
     "prepare:android": "npm run setup && npm run platform:add:android && npm run plugins:add",
     "build:android": "npm run setup && cordova build android && npm run pack-client",
     "build:android:release": "npm run setup && cordova build android --release && npm run pack-client",
@@ -17,8 +17,13 @@
     "clean": "rimraf platforms plugins dist www/cordova.js www/cordova_plugins.js www/plugins www/cordova-js-src"
   },
   "devDependencies": {
+    "com-darryncampbell-cordova-plugin-intent": "github:darryncampbell/darryncampbell-cordova-plugin-intent",
     "cordova": "^12.0.0",
     "cordova-android": "^13.0.0",
+    "cordova-plugin-android-permissions": "^1.1.5",
+    "cordova-plugin-background-mode-fixes": "^0.7.6",
+    "cordova-plugin-device": "^3.0.0",
+    "cordova-plugin-ibeacon": "^3.8.1",
     "rimraf": "^5.0.5"
   },
   "cordova": {
@@ -28,8 +33,9 @@
     "plugins": {
       "cordova-plugin-ibeacon": {},
       "cordova-plugin-background-mode-fixes": {},
-      "cordova-plugin-intentshim": {},
-      "cordova-plugin-android-permissions": {}
+      "cordova-plugin-android-permissions": {},
+      "com.unarin.cordova.beacon": {},
+      "com-darryncampbell-cordova-plugin-intent": {}
     }
   },
   "license": "Apache-2.0"
