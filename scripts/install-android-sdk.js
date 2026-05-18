@@ -144,15 +144,18 @@ function isInstalled(sdk) {
 function download(url, dest) {
     return new Promise((resolve, reject) => {
         const file = fs.createWriteStream(dest);
+        let hops = 0;
         const fetch = (u) => https.get(u, { headers: { 'User-Agent': 'curl/8' } }, (res) => {
-            if (res.statusCode === 301 || res.statusCode === 302) {
+            if (res.statusCode >= 300 && res.statusCode < 400 && res.headers.location) {
+                if (++hops > 10) { file.close(); fs.unlinkSync(dest); reject(new Error('Too many redirects')); return; }
+                const next = new URL(res.headers.location, u).toString();
                 res.resume();
-                fetch(res.headers.location);
+                fetch(next);
                 return;
             }
             if (res.statusCode !== 200) {
                 file.close();
-                fs.unlinkSync(dest);
+                try { fs.unlinkSync(dest); } catch (_) {}
                 reject(new Error(`HTTP ${res.statusCode} for ${u}`));
                 return;
             }
