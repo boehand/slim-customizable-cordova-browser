@@ -80,9 +80,15 @@ The pipeline was end-to-end verified up to the Android-SDK boundary:
 Requirements:
 
 - Node.js 18+
-- Java JDK 17
-- Android Studio / Android SDK with API 34
-- `ANDROID_HOME` exported
+- Java JDK 17 on `PATH`
+- Internet access to `dl.google.com` (the SDK installer downloads from there)
+
+You do **not** need to install Android Studio or set `ANDROID_HOME` by hand —
+`npm run sdk:install` (and every `build:android` / `run:android` invocation)
+downloads `commandlinetools-*.zip` into `~/android-sdk` (or
+`%LOCALAPPDATA%\Android\Sdk` on Windows), accepts licenses, and installs
+`platform-tools`, `platforms;android-34`, `build-tools;34.0.0`. It is idempotent
+on subsequent runs.
 
 ```bash
 git clone https://github.com/boehand/slim-customizable-cordova-browser
@@ -94,6 +100,7 @@ npm install
 # 2. edit customize.json (url, appName, beacon UUID, …)
 
 # 3. one-shot: apply config + add platform + install plugins
+#    (auto-installs Android SDK on first run)
 npm run prepare:android
 
 # 4. build a debug APK (also writes dist/cordova-bridge/)
@@ -101,6 +108,10 @@ npm run build:android
 # → platforms/android/app/build/outputs/apk/debug/app-debug.apk
 # → dist/cordova-bridge/    (upload this to your web server)
 ```
+
+If you already have the SDK and just want to set the path, point
+`ANDROID_HOME` at it before running npm — the installer detects it and skips
+the download.
 
 Other commands:
 
