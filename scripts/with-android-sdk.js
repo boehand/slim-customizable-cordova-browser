@@ -11,25 +11,23 @@
  */
 const path = require('path');
 const { spawnSync } = require('child_process');
-const { ensure, findJavaHome } = require('./install-android-sdk');
+const { ensure, ensureJava } = require('./install-android-sdk');
 
 const isWin = process.platform === 'win32';
 const PATH_SEP = isWin ? ';' : ':';
 
 async function main() {
+    const javaHome = await ensureJava();
     const sdk = await ensure();
     const env = { ...process.env };
     env.ANDROID_HOME = sdk;
     env.ANDROID_SDK_ROOT = sdk;
-    const javaHome = findJavaHome();
-    if (javaHome) {
-        env.JAVA_HOME = javaHome;
-    }
+    env.JAVA_HOME = javaHome;
     const extraPath = [
+        path.join(javaHome, 'bin'),
         path.join(sdk, 'platform-tools'),
         path.join(sdk, 'cmdline-tools', 'latest', 'bin')
     ];
-    if (javaHome) extraPath.unshift(path.join(javaHome, 'bin'));
     env.PATH = extraPath.join(PATH_SEP) + PATH_SEP + (env.PATH || '');
 
     const argv = process.argv.slice(2);
