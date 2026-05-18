@@ -80,15 +80,20 @@ The pipeline was end-to-end verified up to the Android-SDK boundary:
 Requirements:
 
 - Node.js 18+
-- Java JDK 17 on `PATH`
-- Internet access to `dl.google.com` (the SDK installer downloads from there)
+- Internet access to `dl.google.com`, `api.adoptium.net` and Maven Central
 
-You do **not** need to install Android Studio or set `ANDROID_HOME` by hand —
-`npm run sdk:install` (and every `build:android` / `run:android` invocation)
-downloads `commandlinetools-*.zip` into `~/android-sdk` (or
-`%LOCALAPPDATA%\Android\Sdk` on Windows), accepts licenses, and installs
-`platform-tools`, `platforms;android-34`, `build-tools;34.0.0`. It is idempotent
-on subsequent runs.
+You do **not** need to install Android Studio, the Android SDK, or even a JDK
+by hand. On first run `npm run sdk:install` (and every `build:android` /
+`run:android` invocation) will:
+
+1. Detect a usable JDK (env `JAVA_HOME`, then `java -XshowSettings:properties
+   -version`, then `where`/`which java`). If nothing is found, download Temurin
+   JDK 17 from Adoptium into `~/.slim-cordova-jdk-17/`.
+2. Install the Android command-line tools into `~/android-sdk` (or
+   `%LOCALAPPDATA%\Android\Sdk` on Windows), accept all licenses, and install
+   `platform-tools`, `platforms;android-34`, `build-tools;34.0.0`.
+
+Both steps are idempotent — subsequent runs check the cache and skip in milliseconds.
 
 ```bash
 git clone https://github.com/boehand/slim-customizable-cordova-browser

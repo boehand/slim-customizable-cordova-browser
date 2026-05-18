@@ -26,6 +26,7 @@ const REQUIRED = [
     'platforms;android-34',
     'build-tools;34.0.0'
 ];
+const JDK_VERSION = '17';
 
 const isWin = process.platform === 'win32';
 const isMac = process.platform === 'darwin';
@@ -35,6 +36,8 @@ const ZIP_URL = `https://dl.google.com/android/repository/${ZIP_NAME}`;
 const SCRIPT_EXT = isWin ? '.bat' : '';
 const PATH_SEP = isWin ? ';' : ':';
 
+const JDK_CACHE = path.join(os.homedir(), '.slim-cordova-jdk-' + JDK_VERSION);
+
 function log(msg) { console.log('[install-android-sdk]', msg); }
 
 /**
@@ -42,9 +45,11 @@ function log(msg) { console.log('[install-android-sdk]', msg); }
  * without it even though Cordova itself only needs `java` on PATH.
  */
 function findJavaHome() {
-    if (process.env.JAVA_HOME && fs.existsSync(process.env.JAVA_HOME)) {
+    if (process.env.JAVA_HOME && fs.existsSync(javaBinIn(process.env.JAVA_HOME))) {
         return process.env.JAVA_HOME;
     }
+    const cached = cachedJavaHome();
+    if (cached) return cached;
     const probe = spawnSync('java', ['-XshowSettings:properties', '-version'], { encoding: 'utf8' });
     const out = (probe.stderr || '') + (probe.stdout || '');
     const m = out.match(/java\.home\s*=\s*(.+)/);
@@ -63,6 +68,58 @@ function findJavaHome() {
         }
     }
     return null;
+}
+
+function javaBinIn(home) {
+    return path.join(home, 'bin', isWin ? 'java.exe' : 'java');
+}
+
+function cachedJavaHome() {
+    if (!fs.existsSync(JDK_CACHE)) return null;
+    for (const entry of fs.readdirSync(JDK_CACHE)) {
+        const candidate = path.join(JDK_CACHE, entry);
+        if (!fs.statSync(candidate).isDirectory()) continue;
+        const macHome = path.join(candidate, 'Contents', 'Home');
+        if (isMac && fs.existsSync(javaBinIn(macHome))) return macHome;
+        if (fs.existsSync(javaBinIn(candidate))) return candidate;
+    }
+    return null;
+}
+
+/**
+ * Returns a usable JAVA_HOME, downloading Temurin JDK 17 from Adoptium if
+ * no Java is detected on the system. Idempotent: once cached under
+ * ~/.slim-cordova-jdk-17/ it is reused on every run.
+ */
+async function ensureJava() {
+    const existing = findJavaHome();
+    if (existing) return existing;
+
+    log('No Java found on PATH or JAVA_HOME; installing Temurin JDK ' + JDK_VERSION);
+    fs.mkdirSync(JDK_CACHE, { recursive: true });
+
+    const arch = process.arch === 'arm64' ? 'aarch64' : 'x64';
+    const osName = isWin ? 'windows' : isMac ? 'mac' : 'linux';
+    const ext = isWin ? 'zip' : 'tar.gz';
+    const apiUrl = `https://api.adoptium.net/v3/binary/latest/${JDK_VERSION}/ga/${osName}/${arch}/jdk/hotspot/normal/eclipse?project=jdk`;
+    const tmp = path.join(os.tmpdir(), `temurin-jdk-${JDK_VERSION}.${ext}`);
+
+    log('Downloading ' + apiUrl);
+    await download(apiUrl, tmp);
+
+    if (isWin) {
+        unzip(tmp, JDK_CACHE);
+    } else {
+        log('Extracting ' + tmp);
+        const r = spawnSync('tar', ['-xzf', tmp, '-C', JDK_CACHE], { stdio: 'inherit' });
+        if (r.status !== 0) throw new Error('tar -xzf failed; is `tar` installed?');
+    }
+    try { fs.unlinkSync(tmp); } catch (_) {}
+
+    const home = cachedJavaHome();
+    if (!home) throw new Error('JDK archive extracted but no usable bin/java found in ' + JDK_CACHE);
+    log('JDK ready at ' + home);
+    return home;
 }
 
 function defaultSdkPath() {
@@ -129,13 +186,10 @@ function unzip(zipPath, dest) {
     }
 }
 
-function sdkmanagerEnv() {
-    const javaHome = findJavaHome();
+function sdkmanagerEnv(javaHome) {
+    if (!javaHome) javaHome = findJavaHome();
     if (!javaHome) {
-        throw new Error(
-            'No Java found. Install JDK 17 (e.g. https://adoptium.net/temurin/releases/?version=17) ' +
-            'and either add its bin/ to PATH or set JAVA_HOME.'
-        );
+        throw new Error('No Java found and JDK install was skipped — call ensureJava() first.');
     }
     const env = { ...process.env, JAVA_HOME: javaHome };
     const javaBin = path.join(javaHome, 'bin');
@@ -143,10 +197,10 @@ function sdkmanagerEnv() {
     return env;
 }
 
-function acceptLicenses(sdkmanager) {
+function acceptLicenses(sdkmanager, javaHome) {
     return new Promise((resolve, reject) => {
         log('Accepting SDK licenses');
-        const env = sdkmanagerEnv();
+        const env = sdkmanagerEnv(javaHome);
         const proc = spawn(sdkmanager, ['--licenses'], {
             stdio: ['pipe', 'inherit', 'inherit'],
             shell: isWin,
@@ -165,14 +219,16 @@ function acceptLicenses(sdkmanager) {
     });
 }
 
-function runSdkmanager(sdkmanager, args) {
+function runSdkmanager(sdkmanager, args, javaHome) {
     log('sdkmanager ' + args.join(' '));
-    const env = sdkmanagerEnv();
+    const env = sdkmanagerEnv(javaHome);
     const r = spawnSync(sdkmanager, args, { stdio: 'inherit', shell: isWin, env });
     if (r.status !== 0) throw new Error('sdkmanager failed');
 }
 
 async function ensure(sdkPath = defaultSdkPath()) {
+    const javaHome = await ensureJava();
+
     if (isInstalled(sdkPath)) {
         log('SDK already present at ' + sdkPath);
         return sdkPath;
@@ -199,8 +255,8 @@ async function ensure(sdkPath = defaultSdkPath()) {
         try { fs.unlinkSync(tmpZip); } catch (_) {}
     }
 
-    await acceptLicenses(sdkmanager);
-    runSdkmanager(sdkmanager, ['--install', ...REQUIRED]);
+    await acceptLicenses(sdkmanager, javaHome);
+    runSdkmanager(sdkmanager, ['--install', ...REQUIRED], javaHome);
 
     log('SDK ready at ' + sdkPath);
     return sdkPath;
@@ -220,7 +276,7 @@ function printShellHints(sdk) {
     }
 }
 
-module.exports = { ensure, defaultSdkPath, isInstalled, findJavaHome };
+module.exports = { ensure, ensureJava, defaultSdkPath, isInstalled, findJavaHome };
 
 if (require.main === module) {
     ensure().then((sdk) => {
