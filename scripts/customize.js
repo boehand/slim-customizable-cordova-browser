@@ -50,8 +50,7 @@ function buildConfigXml(c) {
   const ui = c.ui || {};
   const android = c.android || {};
   const allowList = buildAllowList(c);
-  const chromeEnabled = !c.ui || !c.ui.chrome || c.ui.chrome.enabled !== false;
-  const contentSrc = chromeEnabled ? 'index.html' : (c.url || 'index.html');
+  const contentSrc = c.url || 'index.html';
 
   return `<?xml version='1.0' encoding='utf-8'?>
 <widget id="${escapeXml(c.appId)}" version="${escapeXml(c.version)}" xmlns="http://www.w3.org/ns/widgets" xmlns:cdv="http://cordova.apache.org/ns/1.0" xmlns:android="http://schemas.android.com/apk/res/android">
@@ -61,6 +60,7 @@ function buildConfigXml(c) {
     <content src="${escapeXml(contentSrc)}" />
     <hook type="before_build" src="hooks/patch-legacy-gradle.js" />
     <hook type="before_compile" src="hooks/patch-legacy-gradle.js" />
+    <hook type="after_prepare" src="hooks/install-chrome.js" />
     <access origin="*" />
 ${allowList}
     <allow-intent href="http://*/*" />
