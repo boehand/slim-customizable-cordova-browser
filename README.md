@@ -82,7 +82,7 @@ Requirements:
 - Node.js 18+
 - Internet access to `dl.google.com`, `api.adoptium.net` and Maven Central
 
-You do **not** need to install Android Studio, the Android SDK, or even a JDK
+You do **not** need to install Android Studio, the Android SDK, Gradle, or even a JDK
 by hand. On first run `npm run sdk:install` (and every `build:android` /
 `run:android` invocation) will:
 
@@ -92,8 +92,10 @@ by hand. On first run `npm run sdk:install` (and every `build:android` /
 2. Install the Android command-line tools into `~/android-sdk` (or
    `%LOCALAPPDATA%\Android\Sdk` on Windows), accept all licenses, and install
    `platform-tools`, `platforms;android-34`, `build-tools;34.0.0`.
+3. Detect or install Gradle 8.7 (used once to generate `platforms/android/tools/gradlew`;
+   `gradlew` self-contains the rest). Cached at `~/.slim-cordova-gradle-8.7/`.
 
-Both steps are idempotent — subsequent runs check the cache and skip in milliseconds.
+All three steps are idempotent — subsequent runs check the cache and skip in milliseconds.
 
 ```bash
 git clone https://github.com/boehand/slim-customizable-cordova-browser
