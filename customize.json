@@ -14,7 +14,13 @@
     "splashTextColor": "#ffffff",
     "loadingText": "Loading…",
     "showErrorOnFailure": true,
-    "showReloadButton": true
+    "showReloadButton": true,
+    "chrome": {
+      "enabled": true,
+      "addressBar": true,
+      "infoButton": true,
+      "githubUrl": "https://github.com/boehand/slim-customizable-cordova-browser"
+    }
   },
   "beacons": {
     "autoStart": true,

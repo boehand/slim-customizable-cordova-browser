@@ -1,25 +1,78 @@
 <!DOCTYPE html>
-<!--
-  Local fallback page. The app loads this only when customize.json `url`
-  is missing or unreachable (otherwise `<content src>` in config.xml points
-  straight at the remote URL).
--->
 <html lang="en">
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-    <meta http-equiv="Content-Security-Policy" content="default-src 'self' 'unsafe-inline' data: blob: gap:; img-src * data: blob:;">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self' 'unsafe-inline' 'unsafe-eval' data: blob: gap: https: http: ws: wss: mediastream:; img-src * data: blob:;">
     <title>Slim Browser</title>
     <link rel="stylesheet" href="css/app.css">
 </head>
 <body>
-    <div class="fallback">
-        <h1 id="title">Slim Browser</h1>
-        <p>No remote URL is configured for this build.</p>
-        <p>Edit <code>customize.json</code> → <code>url</code>, run
-            <code>npm run setup</code> and rebuild.</p>
-        <p id="cfg-url"></p>
+    <header id="chrome">
+        <form id="addressForm" autocomplete="off">
+            <button type="button" id="reloadBtn" title="Reload" aria-label="Reload">⟳</button>
+            <input id="addressBar" type="url" inputmode="url" autocapitalize="off" autocorrect="off" spellcheck="false" placeholder="https://…">
+            <button type="submit" id="goBtn" title="Go" aria-label="Go">↵</button>
+            <button type="button" id="infoBtn" title="Info" aria-label="Info">ⓘ</button>
+        </form>
+        <div id="progress" hidden></div>
+    </header>
+
+    <main>
+        <iframe id="content" allow="bluetooth; geolocation; camera; microphone; nfc; usb; serial; clipboard-read; clipboard-write" referrerpolicy="no-referrer-when-downgrade"></iframe>
+        <div id="fallback" hidden>
+            <h2>No URL configured</h2>
+            <p>Edit <code>customize.json</code> → <code>url</code>, run <code>npm run customize</code> and rebuild — or just type a URL above.</p>
+        </div>
+    </main>
+
+    <div id="infoModal" class="modal" hidden aria-modal="true" role="dialog">
+        <div class="modal-card">
+            <header>
+                <h2 id="modalTitle">Slim Browser</h2>
+                <button id="closeInfo" type="button" aria-label="Close">✕</button>
+            </header>
+            <section>
+                <h3>App</h3>
+                <dl id="appInfo"></dl>
+            </section>
+            <section>
+                <h3>Cordova plugins</h3>
+                <ul id="pluginList"></ul>
+            </section>
+            <section>
+                <h3>Web platform features</h3>
+                <ul id="featureList"></ul>
+                <details>
+                    <summary>WebNFC example</summary>
+                    <pre><code>const reader = new NDEFReader();
+await reader.scan();
+reader.onreading = e =&gt; {
+  for (const r of e.message.records) console.log(r);
+};</code></pre>
+                </details>
+                <details>
+                    <summary>Web Push / Notifications example</summary>
+                    <pre><code>if ('Notification' in window) {
+  await Notification.requestPermission();
+  new Notification('Hello from Slim Browser');
+}
+// Full Web Push needs a Service Worker + push server (VAPID).</code></pre>
+                </details>
+                <details>
+                    <summary>QR scanning (html5-qrcode)</summary>
+                    <pre><code>&lt;script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"&gt;&lt;/script&gt;
+const s = new Html5QrcodeScanner('reader', { fps: 10, qrbox: 250 }, false);
+s.render(text =&gt; console.log(text));</code></pre>
+                </details>
+            </section>
+            <section>
+                <h3>Source</h3>
+                <p><a id="githubLink" href="#" target="_blank" rel="noopener">View on GitHub</a></p>
+            </section>
+        </div>
     </div>
+
     <script src="cordova.js"></script>
     <script src="js/config.js"></script>
     <script src="js/app.js"></script>

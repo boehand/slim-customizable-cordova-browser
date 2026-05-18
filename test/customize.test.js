@@ -50,13 +50,21 @@ test('buildConfigXml wires identifying fields', () => {
     assert.match(xml, /<author email="a@b\.c" href="https:\/\/a\.b">Alice<\/author>/);
 });
 
-test('buildConfigXml uses the remote URL as <content src> when present', () => {
+test('buildConfigXml defaults to index.html so the chrome UI is loaded', () => {
     const xml = buildConfigXml(baseCfg());
+    assert.match(xml, /<content src="index\.html" \/>/);
+});
+
+test('buildConfigXml uses the remote URL when chrome UI is disabled', () => {
+    const cfg = baseCfg();
+    cfg.ui.chrome = { enabled: false };
+    const xml = buildConfigXml(cfg);
     assert.match(xml, /<content src="https:\/\/example\.com\/ui" \/>/);
 });
 
 test('buildConfigXml falls back to index.html when no url configured', () => {
     const cfg = baseCfg(); delete cfg.url;
+    cfg.ui.chrome = { enabled: false };
     const xml = buildConfigXml(cfg);
     assert.match(xml, /<content src="index\.html" \/>/);
 });
