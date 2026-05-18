@@ -37,6 +37,34 @@ const PATH_SEP = isWin ? ';' : ':';
 
 function log(msg) { console.log('[install-android-sdk]', msg); }
 
+/**
+ * Best-effort JAVA_HOME detection. sdkmanager.bat on Windows refuses to run
+ * without it even though Cordova itself only needs `java` on PATH.
+ */
+function findJavaHome() {
+    if (process.env.JAVA_HOME && fs.existsSync(process.env.JAVA_HOME)) {
+        return process.env.JAVA_HOME;
+    }
+    const probe = spawnSync('java', ['-XshowSettings:properties', '-version'], { encoding: 'utf8' });
+    const out = (probe.stderr || '') + (probe.stdout || '');
+    const m = out.match(/java\.home\s*=\s*(.+)/);
+    if (m) return m[1].trim();
+    const finder = isWin ? 'where' : 'which';
+    const r = spawnSync(finder, ['java'], { encoding: 'utf8' });
+    if (r.status === 0) {
+        const javaBin = r.stdout.split(/\r?\n/)[0].trim();
+        if (javaBin) {
+            try {
+                const real = fs.realpathSync(javaBin);
+                return path.dirname(path.dirname(real));
+            } catch (_) {
+                return path.dirname(path.dirname(javaBin));
+            }
+        }
+    }
+    return null;
+}
+
 function defaultSdkPath() {
     if (process.env.ANDROID_HOME) return process.env.ANDROID_HOME;
     if (process.env.ANDROID_SDK_ROOT) return process.env.ANDROID_SDK_ROOT;
@@ -101,12 +129,28 @@ function unzip(zipPath, dest) {
     }
 }
 
+function sdkmanagerEnv() {
+    const javaHome = findJavaHome();
+    if (!javaHome) {
+        throw new Error(
+            'No Java found. Install JDK 17 (e.g. https://adoptium.net/temurin/releases/?version=17) ' +
+            'and either add its bin/ to PATH or set JAVA_HOME.'
+        );
+    }
+    const env = { ...process.env, JAVA_HOME: javaHome };
+    const javaBin = path.join(javaHome, 'bin');
+    env.PATH = javaBin + PATH_SEP + (env.PATH || '');
+    return env;
+}
+
 function acceptLicenses(sdkmanager) {
     return new Promise((resolve, reject) => {
         log('Accepting SDK licenses');
+        const env = sdkmanagerEnv();
         const proc = spawn(sdkmanager, ['--licenses'], {
             stdio: ['pipe', 'inherit', 'inherit'],
-            shell: isWin
+            shell: isWin,
+            env
         });
         const interval = setInterval(() => {
             try { proc.stdin.write('y\n'); } catch (_) { clearInterval(interval); }
@@ -123,7 +167,8 @@ function acceptLicenses(sdkmanager) {
 
 function runSdkmanager(sdkmanager, args) {
     log('sdkmanager ' + args.join(' '));
-    const r = spawnSync(sdkmanager, args, { stdio: 'inherit', shell: isWin });
+    const env = sdkmanagerEnv();
+    const r = spawnSync(sdkmanager, args, { stdio: 'inherit', shell: isWin, env });
     if (r.status !== 0) throw new Error('sdkmanager failed');
 }
 
@@ -175,7 +220,7 @@ function printShellHints(sdk) {
     }
 }
 
-module.exports = { ensure, defaultSdkPath, isInstalled };
+module.exports = { ensure, defaultSdkPath, isInstalled, findJavaHome };
 
 if (require.main === module) {
     ensure().then((sdk) => {
