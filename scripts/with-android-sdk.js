@@ -16,7 +16,7 @@
 const fs = require('fs');
 const path = require('path');
 const { spawnSync } = require('child_process');
-const { ensure, ensureJava } = require('./install-android-sdk');
+const { ensure, ensureJava, ensureGradle } = require('./install-android-sdk');
 
 const isWin = process.platform === 'win32';
 const PATH_SEP = isWin ? ';' : ':';
@@ -50,8 +50,11 @@ async function main() {
     env.ANDROID_SDK_ROOT = sdk;
     env.JAVA_HOME = javaHome;
 
+    const gradleBin = await ensureGradle(env);
+
     const extraPath = [
         path.join(javaHome, 'bin'),
+        gradleBin,
         path.join(sdk, 'platform-tools'),
         path.join(sdk, 'cmdline-tools', 'latest', 'bin')
     ];

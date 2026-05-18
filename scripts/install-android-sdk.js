@@ -27,6 +27,7 @@ const REQUIRED = [
     'build-tools;34.0.0'
 ];
 const JDK_VERSION = '17';
+const GRADLE_VERSION = '8.7';
 
 const isWin = process.platform === 'win32';
 const isMac = process.platform === 'darwin';
@@ -37,6 +38,7 @@ const SCRIPT_EXT = isWin ? '.bat' : '';
 const PATH_SEP = isWin ? ';' : ':';
 
 const JDK_CACHE = path.join(os.homedir(), '.slim-cordova-jdk-' + JDK_VERSION);
+const GRADLE_CACHE = path.join(os.homedir(), '.slim-cordova-gradle-' + GRADLE_VERSION);
 
 function log(msg) { console.log('[install-android-sdk]', msg); }
 
@@ -120,6 +122,50 @@ async function ensureJava() {
     if (!home) throw new Error('JDK archive extracted but no usable bin/java found in ' + JDK_CACHE);
     log('JDK ready at ' + home);
     return home;
+}
+
+function cachedGradleBin() {
+    if (!fs.existsSync(GRADLE_CACHE)) return null;
+    const dir = path.join(GRADLE_CACHE, `gradle-${GRADLE_VERSION}`, 'bin');
+    const exe = path.join(dir, isWin ? 'gradle.bat' : 'gradle');
+    return fs.existsSync(exe) ? dir : null;
+}
+
+function findSystemGradleBin(env) {
+    const finder = isWin ? 'where' : 'which';
+    const r = spawnSync(finder, ['gradle'], { encoding: 'utf8', env: env || process.env });
+    if (r.status !== 0) return null;
+    const first = r.stdout.split(/\r?\n/)[0].trim();
+    if (!first) return null;
+    try { return path.dirname(fs.realpathSync(first)); }
+    catch (_) { return path.dirname(first); }
+}
+
+/**
+ * cordova-android 13 needs `gradle` on PATH ONCE to generate the gradle wrapper
+ * (after that `gradlew` takes over). Reuse a system gradle if found, otherwise
+ * download Gradle ${GRADLE_VERSION} into ~/.slim-cordova-gradle-${GRADLE_VERSION}/.
+ */
+async function ensureGradle(env) {
+    const system = findSystemGradleBin(env);
+    if (system) return system;
+    const cached = cachedGradleBin();
+    if (cached) return cached;
+
+    log('No gradle found on PATH; installing Gradle ' + GRADLE_VERSION);
+    fs.mkdirSync(GRADLE_CACHE, { recursive: true });
+    const url = `https://services.gradle.org/distributions/gradle-${GRADLE_VERSION}-bin.zip`;
+    const zip = path.join(os.tmpdir(), `gradle-${GRADLE_VERSION}-bin.zip`);
+    log('Downloading ' + url);
+    await download(url, zip);
+    log('Extracting ' + zip);
+    unzip(zip, GRADLE_CACHE);
+    try { fs.unlinkSync(zip); } catch (_) {}
+
+    const bin = cachedGradleBin();
+    if (!bin) throw new Error('Gradle archive extracted but no bin/gradle found in ' + GRADLE_CACHE);
+    log('Gradle ready at ' + bin);
+    return bin;
 }
 
 function defaultSdkPath() {
@@ -279,7 +325,7 @@ function printShellHints(sdk) {
     }
 }
 
-module.exports = { ensure, ensureJava, defaultSdkPath, isInstalled, findJavaHome };
+module.exports = { ensure, ensureJava, ensureGradle, defaultSdkPath, isInstalled, findJavaHome };
 
 if (require.main === module) {
     ensure().then((sdk) => {
