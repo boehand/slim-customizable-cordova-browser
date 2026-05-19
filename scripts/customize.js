@@ -50,7 +50,8 @@ function buildConfigXml(c) {
   const ui = c.ui || {};
   const android = c.android || {};
   const allowList = buildAllowList(c);
-  const contentSrc = c.url || 'index.html';
+  const isPlaceholder = !c.url || /your-node-red\.example\.com/i.test(c.url);
+  const contentSrc = isPlaceholder ? 'start.html' : c.url;
 
   return `<?xml version='1.0' encoding='utf-8'?>
 <widget id="${escapeXml(c.appId)}" version="${escapeXml(c.version)}" xmlns="http://www.w3.org/ns/widgets" xmlns:cdv="http://cordova.apache.org/ns/1.0" xmlns:android="http://schemas.android.com/apk/res/android">

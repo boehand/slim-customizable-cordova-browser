@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self' 'unsafe-inline' 'unsafe-eval' data: blob: gap: https: http: ws: wss: mediastream:; img-src * data: blob:;">
+    <title>Slim Browser — Local test page</title>
+    <link rel="stylesheet" href="css/start.css">
+</head>
+<body>
+    <header>
+        <h1>Slim Browser <span class="muted">— local test page</span></h1>
+        <p class="muted" id="env">Loading…</p>
+    </header>
+
+    <main>
+        <!-- ─── Cordova plugins ───────────────────────────────────── -->
+        <details open data-section="ibeacon">
+            <summary>iBeacon scanning <span class="pill" id="ibeacon-pill">…</span></summary>
+            <div>
+                <p>Uses <code>cordova-plugin-ibeacon</code>. Default region UUID
+                comes from <code>customize.json</code>.</p>
+                <label>Region UUID
+                    <input id="ib-uuid" type="text" value="B9407F30-F5F8-466E-AFF9-25556B57FE6D">
+                </label>
+                <div class="row">
+                    <button id="ib-start">Start scan</button>
+                    <button id="ib-stop" class="secondary">Stop</button>
+                    <button id="ib-auth" class="secondary">Request auth</button>
+                </div>
+                <pre id="ib-out">No data yet.</pre>
+            </div>
+        </details>
+
+        <details data-section="background">
+            <summary>Background mode <span class="pill" id="bg-pill">…</span></summary>
+            <div>
+                <p><code>cordova-plugin-background-mode-fixes</code> keeps the
+                process alive (foreground notification) so beacon ranging can
+                continue when the screen is off.</p>
+                <div class="row">
+                    <button id="bg-enable">Enable</button>
+                    <button id="bg-disable" class="secondary">Disable</button>
+                    <button id="bg-batt" class="secondary">Ignore battery opt.</button>
+                </div>
+                <pre id="bg-out">disabled</pre>
+            </div>
+        </details>
+
+        <details data-section="intent">
+            <summary>Android Intents <span class="pill" id="int-pill">…</span></summary>
+            <div>
+                <p>Uses <code>darryncampbell-cordova-plugin-intent</code> to
+                fire <code>startActivity</code>.</p>
+                <div class="row">
+                    <button data-int="geo">Open Maps</button>
+                    <button data-int="tel">Dialer</button>
+                    <button data-int="url">Open URL</button>
+                    <button data-int="share">Share text</button>
+                </div>
+                <pre id="int-out">Tap a button to send an intent.</pre>
+            </div>
+        </details>
+
+        <details data-section="permissions">
+            <summary>Runtime permissions <span class="pill" id="perm-pill">…</span></summary>
+            <div>
+                <p>Uses <code>cordova-plugin-android-permissions</code> to ask
+                for specific permissions and read their state.</p>
+                <ul id="perm-list"></ul>
+            </div>
+        </details>
+
+        <details data-section="device">
+            <summary>Device info <span class="pill" id="dev-pill">…</span></summary>
+            <div>
+                <p><code>cordova-plugin-device</code> exposes the basic device
+                metadata.</p>
+                <pre id="dev-out">…</pre>
+            </div>
+        </details>
+
+        <!-- ─── Web platform features ─────────────────────────────── -->
+        <details data-section="webnfc">
+            <summary>WebNFC <span class="pill" id="nfc-pill">…</span></summary>
+            <div>
+                <p>Reads NDEF tags via <code>NDEFReader</code>. Tap an
+                NFC tag to the back of the device after pressing Scan.</p>
+                <div class="row">
+                    <button id="nfc-scan">Scan</button>
+                    <button id="nfc-clear" class="secondary">Clear log</button>
+                </div>
+                <pre id="nfc-out">Press Scan and hold a tag near the device.</pre>
+            </div>
+        </details>
+
+        <details data-section="notify">
+            <summary>Notifications <span class="pill" id="not-pill">…</span></summary>
+            <div>
+                <p>Browser-native <code>Notification</code> API. Combined with
+                a service worker + push subscription this is the basis for
+                Web Push.</p>
+                <div class="row">
+                    <button id="not-req">Request permission</button>
+                    <button id="not-show">Show notification</button>
+                </div>
+                <pre id="not-out">…</pre>
+            </div>
+        </details>
+
+        <details data-section="push">
+            <summary>Web Push / Service Worker <span class="pill" id="push-pill">…</span></summary>
+            <div>
+                <p>Registers an inline service worker and attempts to subscribe
+                to push. A real push delivery requires a VAPID-enabled push
+                server — here we only show whether the WebView supports the
+                full pipeline.</p>
+                <div class="row">
+                    <button id="push-reg">Register SW + check push</button>
+                    <button id="push-unsub" class="secondary">Unregister</button>
+                </div>
+                <pre id="push-out">…</pre>
+            </div>
+        </details>
+
+        <details data-section="camera">
+            <summary>Camera (getUserMedia) <span class="pill" id="cam-pill">…</span></summary>
+            <div>
+                <p>Opens the rear camera via <code>navigator.mediaDevices.getUserMedia</code>.</p>
+                <div class="row">
+                    <button id="cam-start">Open camera</button>
+                    <button id="cam-stop" class="secondary">Stop</button>
+                </div>
+                <video id="cam-video" playsinline muted></video>
+                <pre id="cam-out">…</pre>
+            </div>
+        </details>
+
+        <details data-section="qr">
+            <summary>QR scanning <span class="pill" id="qr-pill">…</span></summary>
+            <div>
+                <p>Prefers the native <code>BarcodeDetector</code> API when
+                available (Chrome WebView 90+); otherwise loads
+                <code>html5-qrcode</code> from a CDN.</p>
+                <div class="row">
+                    <button id="qr-start">Scan QR</button>
+                    <button id="qr-stop" class="secondary">Stop</button>
+                </div>
+                <div id="qr-host"></div>
+                <pre id="qr-out">No code yet.</pre>
+            </div>
+        </details>
+
+        <details data-section="bluetooth">
+            <summary>Web Bluetooth <span class="pill" id="ble-pill">…</span></summary>
+            <div>
+                <p><code>navigator.bluetooth.requestDevice</code> opens the
+                system chooser. Note: Web Bluetooth is gated behind a flag in
+                most Cordova WebViews and may need <code>chrome://flags</code>
+                to be enabled in the underlying System WebView.</p>
+                <div class="row">
+                    <button id="ble-scan">Pick a device</button>
+                </div>
+                <pre id="ble-out">…</pre>
+            </div>
+        </details>
+
+        <details data-section="geo">
+            <summary>Geolocation <span class="pill" id="geo-pill">…</span></summary>
+            <div>
+                <div class="row">
+                    <button id="geo-once">Get position</button>
+                    <button id="geo-watch">Watch</button>
+                    <button id="geo-stop" class="secondary">Stop watch</button>
+                </div>
+                <pre id="geo-out">…</pre>
+            </div>
+        </details>
+
+        <details data-section="vibrate">
+            <summary>Vibration <span class="pill" id="vib-pill">…</span></summary>
+            <div>
+                <div class="row">
+                    <button id="vib-short">Short</button>
+                    <button id="vib-long">Long</button>
+                    <button id="vib-pattern">Pattern</button>
+                </div>
+                <pre id="vib-out">…</pre>
+            </div>
+        </details>
+
+        <details data-section="clip">
+            <summary>Clipboard <span class="pill" id="clip-pill">…</span></summary>
+            <div>
+                <div class="row">
+                    <input id="clip-in" type="text" value="Slim Browser test">
+                    <button id="clip-write">Write</button>
+                    <button id="clip-read" class="secondary">Read</button>
+                </div>
+                <pre id="clip-out">…</pre>
+            </div>
+        </details>
+
+        <details data-section="motion">
+            <summary>Motion / Orientation <span class="pill" id="mot-pill">…</span></summary>
+            <div>
+                <div class="row">
+                    <button id="mot-start">Start</button>
+                    <button id="mot-stop" class="secondary">Stop</button>
+                </div>
+                <pre id="mot-out">…</pre>
+            </div>
+        </details>
+    </main>
+
+    <footer>
+        <p class="muted">All tests run locally. No web server required.
+        Configure <code>customize.json → url</code> and rebuild to load your
+        own UI instead — this page stays reachable at
+        <code>https://localhost/start.html</code>.</p>
+    </footer>
+
+    <script src="cordova.js"></script>
+    <script src="js/config.js"></script>
+    <script src="js/start.js"></script>
+</body>
+</html>

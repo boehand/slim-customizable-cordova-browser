@@ -202,7 +202,10 @@ public class MainActivity extends CordovaActivity {
         AlertDialog.Builder b = new AlertDialog.Builder(this)
                 .setTitle(R.string.app_name)
                 .setMessage(sb.toString())
-                .setPositiveButton("Close", null)
+                .setPositiveButton("Test page", (DialogInterface d, int w) -> {
+                    urlBar.setText("https://localhost/start.html");
+                    appView.loadUrlIntoView("https://localhost/start.html", false);
+                })
                 .setNegativeButton("App settings", (DialogInterface d, int w) -> {
                     Intent i = new Intent(android.provider.Settings.ACTION_APPLICATION_DETAILS_SETTINGS);
                     i.setData(Uri.fromParts("package", getPackageName(), null));

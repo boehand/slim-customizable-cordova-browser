@@ -55,10 +55,17 @@ test('buildConfigXml uses the remote URL as <content src> when present', () => {
     assert.match(xml, /<content src="https:\/\/example\.com\/ui" \/>/);
 });
 
-test('buildConfigXml falls back to index.html when no url configured', () => {
+test('buildConfigXml falls back to start.html when no url configured', () => {
     const cfg = baseCfg(); delete cfg.url;
     const xml = buildConfigXml(cfg);
-    assert.match(xml, /<content src="index\.html" \/>/);
+    assert.match(xml, /<content src="start\.html" \/>/);
+});
+
+test('buildConfigXml falls back to start.html for placeholder URL', () => {
+    const cfg = baseCfg();
+    cfg.url = 'https://your-node-red.example.com/ui';
+    const xml = buildConfigXml(cfg);
+    assert.match(xml, /<content src="start\.html" \/>/);
 });
 
 test('buildConfigXml registers the chrome installer hook', () => {
