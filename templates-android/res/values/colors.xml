@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="chrome_window_bg">#f8fafc</color>
+    <color name="chrome_bar_bg">#ffffff</color>
+    <color name="chrome_web_bg">#ffffff</color>
+    <color name="chrome_icon">#0f172a</color>
+    <color name="chrome_icon_accent">#2563eb</color>
+    <color name="chrome_url_bg">#f1f5f9</color>
+    <color name="chrome_url_border">#cbd5e1</color>
+    <color name="chrome_url_fg">#0f172a</color>
+    <color name="chrome_url_hint">#64748b</color>
+</resources>

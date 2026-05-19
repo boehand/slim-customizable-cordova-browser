@@ -3,14 +3,15 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
-    android:fitsSystemWindows="true">
+    android:fitsSystemWindows="true"
+    android:background="@color/chrome_window_bg">
 
     <LinearLayout
         android:id="@+id/chrome_bar"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="horizontal"
-        android:background="#1e293b"
+        android:background="@color/chrome_bar_bg"
         android:gravity="center_vertical"
         android:paddingStart="4dp"
         android:paddingEnd="4dp"
@@ -19,14 +20,14 @@
         android:elevation="2dp">
 
         <ImageButton
-            android:id="@+id/reload_btn"
+            android:id="@+id/back_btn"
             android:layout_width="40dp"
             android:layout_height="40dp"
             android:padding="8dp"
             android:src="@android:drawable/ic_menu_revert"
             android:background="?android:attr/selectableItemBackgroundBorderless"
-            android:contentDescription="Reload"
-            android:tint="#e5e7eb" />
+            android:contentDescription="Back"
+            android:tint="@color/chrome_icon" />
 
         <EditText
             android:id="@+id/url_bar"
@@ -36,8 +37,8 @@
             android:layout_marginStart="4dp"
             android:layout_marginEnd="4dp"
             android:background="@drawable/url_bar_bg"
-            android:textColor="#e5e7eb"
-            android:textColorHint="#94a3b8"
+            android:textColor="@color/chrome_url_fg"
+            android:textColorHint="@color/chrome_url_hint"
             android:hint="https://…"
             android:paddingStart="12dp"
             android:paddingEnd="12dp"
@@ -57,7 +58,7 @@
             android:src="@android:drawable/ic_menu_send"
             android:background="?android:attr/selectableItemBackgroundBorderless"
             android:contentDescription="Go"
-            android:tint="#60a5fa" />
+            android:tint="@color/chrome_icon_accent" />
 
         <ImageButton
             android:id="@+id/info_btn"
@@ -67,7 +68,7 @@
             android:src="@android:drawable/ic_menu_info_details"
             android:background="?android:attr/selectableItemBackgroundBorderless"
             android:contentDescription="Info"
-            android:tint="#e5e7eb" />
+            android:tint="@color/chrome_icon" />
     </LinearLayout>
 
     <FrameLayout
@@ -75,6 +76,6 @@
         android:layout_width="match_parent"
         android:layout_height="0dp"
         android:layout_weight="1"
-        android:background="#000000" />
+        android:background="@color/chrome_web_bg" />
 
 </LinearLayout>

@@ -165,20 +165,6 @@
             </div>
         </details>
 
-        <details data-section="bluetooth">
-            <summary>Web Bluetooth <span class="pill" id="ble-pill">…</span></summary>
-            <div>
-                <p><code>navigator.bluetooth.requestDevice</code> opens the
-                system chooser. Note: Web Bluetooth is gated behind a flag in
-                most Cordova WebViews and may need <code>chrome://flags</code>
-                to be enabled in the underlying System WebView.</p>
-                <div class="row">
-                    <button id="ble-scan">Pick a device</button>
-                </div>
-                <pre id="ble-out">…</pre>
-            </div>
-        </details>
-
         <details data-section="geo">
             <summary>Geolocation <span class="pill" id="geo-pill">…</span></summary>
             <div>
@@ -226,6 +212,20 @@
             </div>
         </details>
     </main>
+
+    <details id="log-panel">
+        <summary>Log <span id="log-count" class="muted">0</span></summary>
+        <div class="log-body">
+            <div class="row">
+                <button id="log-clear" class="secondary">Clear</button>
+                <button id="log-copy" class="secondary">Copy</button>
+                <label style="display:flex;align-items:center;gap:.3rem;margin:0;color:var(--fg-muted);font-size:.75rem;">
+                    <input type="checkbox" id="log-autoscroll" checked> autoscroll
+                </label>
+            </div>
+            <pre id="log-out"></pre>
+        </div>
+    </details>
 
     <footer>
         <p class="muted">All tests run locally. No web server required.

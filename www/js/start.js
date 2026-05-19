@@ -31,6 +31,79 @@
         el.scrollTop = el.scrollHeight;
     }
 
+    // ── Bottom log panel ───────────────────────────────────────────
+    // Captures console.* + window errors, plus explicit logEvent() calls
+    // from individual sections, into the collapsible bottom panel.
+    const LOG_MAX = 500;
+    const logBuf = [];
+    let logCount = 0;
+    function fmtArg(a) {
+        if (a instanceof Error) return a.message + (a.stack ? '\n' + a.stack : '');
+        if (typeof a === 'string') return a;
+        try { return JSON.stringify(a); } catch (_) { return String(a); }
+    }
+    function logEvent(level, ...args) {
+        const ts = new Date().toISOString().slice(11, 19);
+        const msg = args.map(fmtArg).join(' ');
+        logBuf.push({ ts, level, msg });
+        if (logBuf.length > LOG_MAX) logBuf.splice(0, logBuf.length - LOG_MAX);
+        logCount++;
+        renderLog();
+    }
+    function renderLog() {
+        const out = $('log-out');
+        const cnt = $('log-count');
+        if (cnt) cnt.textContent = String(logCount);
+        if (!out) return;
+        out.innerHTML = logBuf.map(e =>
+            `<span class="lvl-${e.level}">[${e.ts}] ${e.level.toUpperCase()} ${escapeHtml(e.msg)}</span>`
+        ).join('\n');
+        const auto = $('log-autoscroll');
+        if (!auto || auto.checked) out.scrollTop = out.scrollHeight;
+    }
+    function escapeHtml(s) {
+        return String(s).replace(/[&<>"']/g, c => ({
+            '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+        }[c]));
+    }
+    function setupLogPanel() {
+        ['log', 'info', 'warn', 'error', 'debug'].forEach(level => {
+            const orig = console[level] && console[level].bind(console);
+            console[level] = (...args) => {
+                logEvent(level === 'log' ? 'info' : level, ...args);
+                if (orig) orig(...args);
+            };
+        });
+        window.addEventListener('error', (e) => {
+            logEvent('error', (e.message || 'error') + (e.filename ? ' @ ' + e.filename + ':' + e.lineno : ''));
+        });
+        window.addEventListener('unhandledrejection', (e) => {
+            logEvent('error', 'unhandledrejection: ' + fmtArg(e.reason));
+        });
+        const clear = $('log-clear');
+        if (clear) clear.onclick = () => { logBuf.length = 0; logCount = 0; renderLog(); };
+        const copy = $('log-copy');
+        if (copy) copy.onclick = async () => {
+            const text = logBuf.map(e => `[${e.ts}] ${e.level.toUpperCase()} ${e.msg}`).join('\n');
+            try { await navigator.clipboard.writeText(text); }
+            catch (_) { /* clipboard may be blocked */ }
+        };
+    }
+
+    // Request a single runtime permission via cordova-plugin-android-permissions.
+    function requestRuntimePermission(name) {
+        return new Promise((resolve) => {
+            const perms = window.cordova && cordova.plugins && cordova.plugins.permissions;
+            if (!perms || !perms[name]) return resolve(false);
+            perms.checkPermission(perms[name], (r) => {
+                if (r.hasPermission) return resolve(true);
+                perms.requestPermission(perms[name],
+                    (r2) => resolve(!!r2.hasPermission),
+                    () => resolve(false));
+            }, () => resolve(false));
+        });
+    }
+
     function inCordova() { return !!window.cordova; }
     function bootEnv() {
         const ua = navigator.userAgent;
@@ -98,11 +171,16 @@
         if (!bg()) { setPill('bg-pill', 'bad', 'unavailable'); log(out, 'plugin not present'); return; }
         setPill('bg-pill', 'ok', 'ready');
 
-        $('bg-enable').onclick = () => {
+        $('bg-enable').onclick = async () => {
+            // Android 13+ needs POST_NOTIFICATIONS to show the foreground
+            // service notification the plugin relies on.
+            const granted = await requestRuntimePermission('POST_NOTIFICATIONS');
+            if (!granted) logEvent('warn', 'background-mode: POST_NOTIFICATIONS not granted — foreground notification may not appear');
             bg().setDefaults({ title: cfg.appName || 'Slim Browser', text: 'Test page background mode' });
             bg().enable();
             setPill('bg-pill', 'run', 'enabled');
-            log(out, 'enabled');
+            log(out, 'enabled (notification perm: ' + (granted ? 'granted' : 'missing') + ')');
+            logEvent('info', 'background-mode enabled');
         };
         $('bg-disable').onclick = () => { bg().disable(); setPill('bg-pill', 'ok', 'idle'); log(out, 'disabled'); };
         $('bg-batt').onclick = () => {
@@ -180,10 +258,26 @@
     // ── WebNFC ─────────────────────────────────────────────────────
     function setupNfc() {
         const out = 'nfc-out';
-        if (!('NDEFReader' in window)) { setPill('nfc-pill', 'bad', 'unsupported'); log(out, 'NDEFReader not available'); return; }
+        if (!('NDEFReader' in window)) {
+            setPill('nfc-pill', 'bad', 'unsupported');
+            log(out, 'NDEFReader not available. The Android System WebView only exposes WebNFC when it is up-to-date (Chrome 89+).');
+            return;
+        }
         setPill('nfc-pill', 'ok', 'ready');
         $('nfc-scan').onclick = async () => {
             try {
+                // Check Permissions API first so we can give a precise hint.
+                if (navigator.permissions && navigator.permissions.query) {
+                    try {
+                        const st = await navigator.permissions.query({ name: 'nfc' });
+                        logEvent('info', 'NFC permission state: ' + st.state);
+                        if (st.state === 'denied') {
+                            log(out, 'NFC permission denied. Open App-Settings → Permissions and allow Nearby Devices / NFC, then retry.');
+                            setPill('nfc-pill', 'bad', 'denied');
+                            return;
+                        }
+                    } catch (_) { /* not all WebViews implement the nfc permission name */ }
+                }
                 const reader = new NDEFReader();
                 await reader.scan();
                 log(out, 'Scanning… tap a tag.');
@@ -196,9 +290,19 @@
                         lines.push(r.recordType + ': ' + val);
                     }
                     append(out, lines.join('\n'));
+                    logEvent('info', 'NFC read: ' + (e.serialNumber || '(no serial)'));
                 };
-                reader.onreadingerror = () => append(out, 'read error');
-            } catch (e) { log(out, 'error: ' + e.message); setPill('nfc-pill', 'bad', 'denied'); }
+                reader.onreadingerror = () => { append(out, 'read error'); logEvent('warn', 'NFC read error'); };
+            } catch (e) {
+                const msg = e && e.message || String(e);
+                let hint = '';
+                if (/NotAllowed/i.test(msg) || /denied/i.test(msg)) hint = '\nGrant NFC in App-Settings or accept the system prompt next time.';
+                else if (/NotSupported/i.test(msg)) hint = '\nThis device or WebView does not expose WebNFC.';
+                else if (/NotReadable|disabled/i.test(msg)) hint = '\nNFC adapter is off. Enable NFC in Android settings.';
+                log(out, 'error: ' + msg + hint);
+                logEvent('error', 'NFC scan: ' + msg);
+                setPill('nfc-pill', 'bad', 'denied');
+            }
         };
         $('nfc-clear').onclick = () => log(out, '');
     }
@@ -206,16 +310,25 @@
     // ── Notifications ──────────────────────────────────────────────
     function setupNotifications() {
         const out = 'not-out';
-        if (!('Notification' in window)) { setPill('not-pill', 'bad', 'unsupported'); return; }
+        if (!('Notification' in window)) {
+            setPill('not-pill', 'bad', 'unsupported');
+            log(out, 'The Notification API is not exposed by the Android System WebView. Web push / web notifications only work in real browsers. Use cordova-plugin-local-notification or FCM for native notifications.');
+            return;
+        }
         const titleInput = $('not-title');
         const bodyInput = $('not-body');
         if (cfg.appName) titleInput.value = cfg.appName;
         setPill('not-pill', Notification.permission === 'granted' ? 'ok' : 'run', Notification.permission);
         log(out, 'permission: ' + Notification.permission);
         $('not-req').onclick = async () => {
+            // POST_NOTIFICATIONS is the Android runtime permission gating
+            // notifications on Android 13+; the Web Notification permission
+            // is a separate per-origin prompt.
+            await requestRuntimePermission('POST_NOTIFICATIONS');
             const p = await Notification.requestPermission();
             setPill('not-pill', p === 'granted' ? 'ok' : 'bad', p);
             log(out, 'permission: ' + p);
+            logEvent('info', 'Notification permission: ' + p);
         };
         $('not-show').onclick = () => {
             const title = titleInput.value || 'Slim Browser';
@@ -232,7 +345,10 @@
         const out = 'push-out';
         const ok = ('serviceWorker' in navigator) && ('PushManager' in window);
         setPill('push-pill', ok ? 'ok' : 'bad', ok ? 'available' : 'unsupported');
-        if (!ok) { log(out, 'serviceWorker or PushManager missing'); return; }
+        if (!ok) {
+            log(out, 'serviceWorker or PushManager missing. The Android System WebView does not expose Service Workers/Push to in-app pages — this only works in standalone browsers like Chrome.');
+            return;
+        }
 
         let registration = null;
         const titleInput = $('push-title');
@@ -384,19 +500,6 @@
         };
     }
 
-    // ── Web Bluetooth ─────────────────────────────────────────────
-    function setupBle() {
-        const out = 'ble-out';
-        if (!navigator.bluetooth) { setPill('ble-pill', 'bad', 'unsupported'); log(out, 'navigator.bluetooth missing'); return; }
-        setPill('ble-pill', 'ok', 'ready');
-        $('ble-scan').onclick = async () => {
-            try {
-                const dev = await navigator.bluetooth.requestDevice({ acceptAllDevices: true });
-                log(out, { id: dev.id, name: dev.name });
-            } catch (e) { log(out, 'error: ' + e.message); }
-        };
-    }
-
     // ── Geolocation ───────────────────────────────────────────────
     function setupGeo() {
         const out = 'geo-out';
@@ -478,7 +581,9 @@
 
     // ── Bootstrap ─────────────────────────────────────────────────
     function boot() {
+        setupLogPanel();
         bootEnv();
+        logEvent('info', 'boot — ' + $('env').textContent);
         setupBeacons();
         setupBackground();
         setupIntent();
@@ -489,7 +594,6 @@
         setupPush();
         setupCamera();
         setupQr();
-        setupBle();
         setupGeo();
         setupVibrate();
         setupClipboard();
