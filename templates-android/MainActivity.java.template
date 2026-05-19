@@ -177,7 +177,7 @@ public class MainActivity extends CordovaActivity {
 
         sb.append("Cordova plugins:\n");
         sb.append(checkClass("com.unarin.cordova.beacon.LocationManager",                "cordova-plugin-ibeacon"));
-        sb.append(checkClass("de.appplant.cordova.plugin.background.BackgroundMode",     "cordova-plugin-background-mode-fixes"));
+        sb.append(checkClass("de.appplant.cordova.plugin.background.BackgroundMode",     "cordova-plugin-background-mode (KA-CTO)"));
         sb.append(checkClass("com.darryncampbell.cordova.plugin.intent.IntentShim",      "darryncampbell-cordova-plugin-intent"));
         sb.append(checkClass("com.alongon.permissions.Permissions",                       "cordova-plugin-android-permissions"));
         sb.append(checkClass("org.apache.cordova.device.Device",                          "cordova-plugin-device"));

@@ -35,8 +35,27 @@
     // Captures console.* + window errors, plus explicit logEvent() calls
     // from individual sections, into the collapsible bottom panel.
     const LOG_MAX = 500;
-    const logBuf = [];
-    let logCount = 0;
+    const LOG_STORAGE_KEY = 'slimBrowser.log.v1';
+    const logBuf = loadLog();
+    let logCount = logBuf.length;
+    let logSaveTimer = null;
+    function loadLog() {
+        try {
+            const raw = localStorage.getItem(LOG_STORAGE_KEY);
+            if (!raw) return [];
+            const arr = JSON.parse(raw);
+            return Array.isArray(arr) ? arr.slice(-LOG_MAX) : [];
+        } catch (_) { return []; }
+    }
+    function saveLog() {
+        // Debounced so a burst of events does not thrash localStorage.
+        if (logSaveTimer) return;
+        logSaveTimer = setTimeout(() => {
+            logSaveTimer = null;
+            try { localStorage.setItem(LOG_STORAGE_KEY, JSON.stringify(logBuf)); }
+            catch (_) { /* quota or disabled storage — keep in-memory log */ }
+        }, 250);
+    }
     function fmtArg(a) {
         if (a instanceof Error) return a.message + (a.stack ? '\n' + a.stack : '');
         if (typeof a === 'string') return a;
@@ -49,6 +68,7 @@
         if (logBuf.length > LOG_MAX) logBuf.splice(0, logBuf.length - LOG_MAX);
         logCount++;
         renderLog();
+        saveLog();
     }
     function renderLog() {
         const out = $('log-out');
@@ -81,7 +101,23 @@
             logEvent('error', 'unhandledrejection: ' + fmtArg(e.reason));
         });
         const clear = $('log-clear');
-        if (clear) clear.onclick = () => { logBuf.length = 0; logCount = 0; renderLog(); };
+        if (clear) clear.onclick = () => {
+            logBuf.length = 0; logCount = 0; renderLog();
+            try { localStorage.removeItem(LOG_STORAGE_KEY); } catch (_) {}
+        };
+        // Flush any pending save when the page is hidden or closed so the
+        // tail of the log survives an app kill.
+        const flush = () => {
+            if (logSaveTimer) { clearTimeout(logSaveTimer); logSaveTimer = null; }
+            try { localStorage.setItem(LOG_STORAGE_KEY, JSON.stringify(logBuf)); } catch (_) {}
+        };
+        window.addEventListener('pagehide', flush);
+        document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden') flush(); });
+        if (window.cordova) {
+            document.addEventListener('pause', flush, false);
+        }
+        // Render the restored buffer immediately.
+        renderLog();
         const copy = $('log-copy');
         if (copy) copy.onclick = async () => {
             const text = logBuf.map(e => `[${e.ts}] ${e.level.toUpperCase()} ${e.msg}`).join('\n');

@@ -4,6 +4,9 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
     <meta http-equiv="Content-Security-Policy" content="default-src 'self' 'unsafe-inline' 'unsafe-eval' data: blob: gap: https: http: ws: wss: mediastream:; img-src * data: blob:;">
+    <meta name="color-scheme" content="light dark">
+    <meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)">
+    <meta name="theme-color" content="#1e293b" media="(prefers-color-scheme: dark)">
     <title>Slim Browser — Local test page</title>
     <link rel="stylesheet" href="css/start.css">
 </head>
@@ -35,9 +38,9 @@
         <details data-section="background">
             <summary>Background mode <span class="pill" id="bg-pill">…</span></summary>
             <div>
-                <p><code>cordova-plugin-background-mode-fixes</code> keeps the
-                process alive (foreground notification) so beacon ranging can
-                continue when the screen is off.</p>
+                <p><code>cordova-plugin-background-mode</code> (KA-CTO fork)
+                keeps the process alive via a foreground-service notification
+                so beacon ranging can continue when the screen is off.</p>
                 <div class="row">
                     <button id="bg-enable">Enable</button>
                     <button id="bg-disable" class="secondary">Disable</button>
