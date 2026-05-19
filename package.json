@@ -8,7 +8,7 @@
     "customize": "node scripts/bundle-libs.js && node scripts/customize.js",
     "sdk:install": "node scripts/install-android-sdk.js",
     "platform:add:android": "node scripts/with-android-sdk.js cordova platform add android@13.0.0",
-    "plugins:add": "node scripts/with-android-sdk.js cordova plugin add cordova-plugin-ibeacon@3.8.1 cordova-plugin-background-mode-fixes@0.7.6 https://github.com/darryncampbell/darryncampbell-cordova-plugin-intent.git cordova-plugin-android-permissions@1.1.5",
+    "plugins:add": "node scripts/with-android-sdk.js cordova plugin add cordova-plugin-ibeacon@3.8.1 https://github.com/KA-CTO/cordova-plugin-background-mode.git https://github.com/darryncampbell/darryncampbell-cordova-plugin-intent.git cordova-plugin-android-permissions@1.1.5",
     "prepare:android": "npm run setup && npm run platform:add:android && npm run plugins:add",
     "build:android": "npm run setup && node scripts/with-android-sdk.js cordova build android && npm run pack-client",
     "build:android:release": "npm run setup && node scripts/with-android-sdk.js cordova build android --release && npm run pack-client",
@@ -22,7 +22,7 @@
     "cordova": "^12.0.0",
     "cordova-android": "^13.0.0",
     "cordova-plugin-android-permissions": "^1.1.5",
-    "cordova-plugin-background-mode-fixes": "^0.7.6",
+    "cordova-plugin-background-mode": "git+https://github.com/KA-CTO/cordova-plugin-background-mode.git",
     "cordova-plugin-device": "^3.0.0",
     "cordova-plugin-ibeacon": "^3.8.1",
     "html5-qrcode": "^2.3.8",
@@ -34,7 +34,7 @@
     ],
     "plugins": {
       "cordova-plugin-ibeacon": {},
-      "cordova-plugin-background-mode-fixes": {},
+      "cordova-plugin-background-mode": {},
       "cordova-plugin-android-permissions": {},
       "com.unarin.cordova.beacon": {},
       "com-darryncampbell-cordova-plugin-intent": {}

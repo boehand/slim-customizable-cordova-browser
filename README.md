@@ -64,7 +64,7 @@ The pipeline was end-to-end verified up to the Android-SDK boundary:
 | `npm run customize` | ✅ | Generates `config.xml` + `www/js/config.js` |
 | `cordova platform add android@13.0.0` | ✅ | |
 | `cordova plugin add cordova-plugin-ibeacon@3.8.1` | ✅ | `cordova.plugins.locationManager` |
-| `cordova plugin add cordova-plugin-background-mode-fixes@0.7.6` | ✅ | `cordova.plugins.backgroundMode` |
+| `cordova plugin add https://github.com/KA-CTO/cordova-plugin-background-mode.git` | ✅ | `cordova.plugins.backgroundMode` (KA-CTO fork) |
 | `cordova plugin add darryncampbell-cordova-plugin-intent` (Git) | ✅ | `window.intentShim` |
 | `cordova plugin add cordova-plugin-android-permissions@1.1.5` | ✅ | |
 | `cordova prepare android` | ✅ | Bridges + plugin JS landed in `platforms/.../assets/www/` |

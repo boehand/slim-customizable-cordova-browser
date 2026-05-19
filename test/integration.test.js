@@ -86,7 +86,7 @@ test('client uses correct Cordova plugin namespaces', () => {
     const src = fs.readFileSync(path.join(ROOT, 'examples', 'slim-browser-client.js'), 'utf8');
     // iBeacon plugin merges into cordova.plugins → locationManager
     assert.match(src, /\.plugins\.locationManager/);
-    // background-mode-fixes clobbers cordova.plugins.backgroundMode
+    // cordova-plugin-background-mode (KA-CTO fork) → cordova.plugins.backgroundMode
     assert.match(src, /\.plugins\.backgroundMode/);
     // darryncampbell intent shim clobbers window.intentShim (not plugins.intentShim)
     assert.match(src, /global\.intentShim/);
