@@ -55,23 +55,48 @@ test('buildConfigXml uses the remote URL as <content src> when present', () => {
     assert.match(xml, /<content src="https:\/\/example\.com\/ui" \/>/);
 });
 
-test('buildConfigXml falls back to index.html when no url configured', () => {
+test('buildConfigXml falls back to start.html when no url configured', () => {
     const cfg = baseCfg(); delete cfg.url;
     const xml = buildConfigXml(cfg);
-    assert.match(xml, /<content src="index\.html" \/>/);
+    assert.match(xml, /<content src="start\.html" \/>/);
+});
+
+test('buildConfigXml falls back to start.html for placeholder URL', () => {
+    const cfg = baseCfg();
+    cfg.url = 'https://your-node-red.example.com/ui';
+    const xml = buildConfigXml(cfg);
+    assert.match(xml, /<content src="start\.html" \/>/);
+});
+
+test('buildConfigXml registers the chrome installer hook', () => {
+    const xml = buildConfigXml(baseCfg());
+    assert.match(xml, /hooks\/install-chrome\.js/);
 });
 
 test('buildConfigXml emits all required Android permissions', () => {
     const xml = buildConfigXml(baseCfg());
     const needed = [
+        'INTERNET', 'ACCESS_NETWORK_STATE',
         'BLUETOOTH', 'BLUETOOTH_ADMIN', 'BLUETOOTH_SCAN', 'BLUETOOTH_CONNECT',
         'ACCESS_COARSE_LOCATION', 'ACCESS_FINE_LOCATION', 'ACCESS_BACKGROUND_LOCATION',
-        'FOREGROUND_SERVICE', 'FOREGROUND_SERVICE_LOCATION', 'WAKE_LOCK',
-        'RECEIVE_BOOT_COMPLETED', 'CAMERA', 'NFC', 'VIBRATE'
+        'FOREGROUND_SERVICE', 'FOREGROUND_SERVICE_LOCATION', 'FOREGROUND_SERVICE_CONNECTED_DEVICE',
+        'WAKE_LOCK', 'RECEIVE_BOOT_COMPLETED', 'REQUEST_IGNORE_BATTERY_OPTIMIZATIONS',
+        'CAMERA', 'NFC', 'POST_NOTIFICATIONS', 'VIBRATE'
     ];
     for (const p of needed) {
         assert.match(xml, new RegExp(`android\\.permission\\.${p}`), `missing permission ${p}`);
     }
+});
+
+test('buildConfigXml caps legacy BLUETOOTH permissions to SDK 30', () => {
+    const xml = buildConfigXml(baseCfg());
+    assert.match(xml, /BLUETOOTH"\s+android:maxSdkVersion="30"/);
+    assert.match(xml, /BLUETOOTH_ADMIN"\s+android:maxSdkVersion="30"/);
+});
+
+test('buildConfigXml flags BLUETOOTH_SCAN as neverForLocation', () => {
+    const xml = buildConfigXml(baseCfg());
+    assert.match(xml, /BLUETOOTH_SCAN"\s+android:usesPermissionFlags="neverForLocation"/);
 });
 
 test('buildConfigXml honours custom Android SDK versions', () => {

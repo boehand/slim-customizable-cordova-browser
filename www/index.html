@@ -1,23 +1,22 @@
 <!DOCTYPE html>
 <!--
-  Local fallback page. The app loads this only when customize.json `url`
-  is missing or unreachable (otherwise `<content src>` in config.xml points
-  straight at the remote URL).
+  Local fallback page. The native MainActivity loads the configured URL
+  directly into the Cordova WebView (no iframe) when `customize.json` has
+  one. This file is only shown when `url` is empty.
 -->
 <html lang="en">
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-    <meta http-equiv="Content-Security-Policy" content="default-src 'self' 'unsafe-inline' data: blob: gap:; img-src * data: blob:;">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self' 'unsafe-inline' data: gap:; img-src * data:;">
     <title>Slim Browser</title>
     <link rel="stylesheet" href="css/app.css">
 </head>
 <body>
     <div class="fallback">
         <h1 id="title">Slim Browser</h1>
-        <p>No remote URL is configured for this build.</p>
-        <p>Edit <code>customize.json</code> → <code>url</code>, run
-            <code>npm run setup</code> and rebuild.</p>
+        <p>No URL configured. Type one in the address bar above, or edit
+            <code>customize.json</code> → <code>url</code> and rebuild.</p>
         <p id="cfg-url"></p>
     </div>
     <script src="cordova.js"></script>

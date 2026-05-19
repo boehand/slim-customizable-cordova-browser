@@ -7,7 +7,7 @@ cd "${WORKSPACE:-$(pwd)}"
 echo "==> npm install"
 npm install --no-audit --no-fund
 
-echo "==> generating config.xml"
+echo "==> bundling JS libraries + generating config.xml"
 npm run customize
 
 echo "==> ensuring Android SDK"
