@@ -1,0 +1,6 @@
+outcome=skipped
+run=26101100263  job=build-android
+===== build log (tail 400 lines) =====
+(no log)
+
+===== gradle reports =====
