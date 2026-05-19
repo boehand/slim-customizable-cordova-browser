@@ -6,6 +6,7 @@ www/cordova.js
 www/cordova-js-src/
 www/plugins/
 www/js/config.js
+www/lib/
 config.xml
 *.apk
 *.aab

@@ -100,6 +100,12 @@
                 <p>Browser-native <code>Notification</code> API. Combined with
                 a service worker + push subscription this is the basis for
                 Web Push.</p>
+                <label>Title
+                    <input id="not-title" type="text" value="Slim Browser">
+                </label>
+                <label>Description (body)
+                    <input id="not-body" type="text" value="Hello from the local test page.">
+                </label>
                 <div class="row">
                     <button id="not-req">Request permission</button>
                     <button id="not-show">Show notification</button>
@@ -111,12 +117,20 @@
         <details data-section="push">
             <summary>Web Push / Service Worker <span class="pill" id="push-pill">…</span></summary>
             <div>
-                <p>Registers an inline service worker and attempts to subscribe
-                to push. A real push delivery requires a VAPID-enabled push
-                server — here we only show whether the WebView supports the
-                full pipeline.</p>
+                <p>Registers an inline service worker, subscribes to push, and
+                simulates an incoming push by triggering
+                <code>showNotification</code> directly. A real push delivery
+                requires a VAPID-enabled push server — here we exercise the
+                full client pipeline.</p>
+                <label>Title
+                    <input id="push-title" type="text" value="Push test">
+                </label>
+                <label>Description (body)
+                    <input id="push-body" type="text" value="This payload arrived via the service worker.">
+                </label>
                 <div class="row">
-                    <button id="push-reg">Register SW + check push</button>
+                    <button id="push-reg">Register SW</button>
+                    <button id="push-simulate">Simulate push</button>
                     <button id="push-unsub" class="secondary">Unregister</button>
                 </div>
                 <pre id="push-out">…</pre>
@@ -139,9 +153,9 @@
         <details data-section="qr">
             <summary>QR scanning <span class="pill" id="qr-pill">…</span></summary>
             <div>
-                <p>Prefers the native <code>BarcodeDetector</code> API when
-                available (Chrome WebView 90+); otherwise loads
-                <code>html5-qrcode</code> from a CDN.</p>
+                <p>Uses <a href="https://github.com/mebjas/html5-qrcode"><code>html5-qrcode</code></a>,
+                bundled into the APK at <code>www/lib/html5-qrcode.min.js</code>,
+                so QR scanning works without internet access.</p>
                 <div class="row">
                     <button id="qr-start">Scan QR</button>
                     <button id="qr-stop" class="secondary">Stop</button>

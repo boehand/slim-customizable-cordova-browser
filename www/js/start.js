@@ -207,6 +207,9 @@
     function setupNotifications() {
         const out = 'not-out';
         if (!('Notification' in window)) { setPill('not-pill', 'bad', 'unsupported'); return; }
+        const titleInput = $('not-title');
+        const bodyInput = $('not-body');
+        if (cfg.appName) titleInput.value = cfg.appName;
         setPill('not-pill', Notification.permission === 'granted' ? 'ok' : 'run', Notification.permission);
         log(out, 'permission: ' + Notification.permission);
         $('not-req').onclick = async () => {
@@ -215,8 +218,12 @@
             log(out, 'permission: ' + p);
         };
         $('not-show').onclick = () => {
-            try { new Notification(cfg.appName || 'Slim Browser', { body: 'Hello from the test page.' }); log(out, 'shown'); }
-            catch (e) { log(out, 'error: ' + e.message); }
+            const title = titleInput.value || 'Slim Browser';
+            const body = bodyInput.value || '';
+            try {
+                new Notification(title, { body });
+                log(out, 'shown: "' + title + '" — "' + body + '"');
+            } catch (e) { log(out, 'error: ' + e.message); }
         };
     }
 
@@ -226,27 +233,75 @@
         const ok = ('serviceWorker' in navigator) && ('PushManager' in window);
         setPill('push-pill', ok ? 'ok' : 'bad', ok ? 'available' : 'unsupported');
         if (!ok) { log(out, 'serviceWorker or PushManager missing'); return; }
+
+        let registration = null;
+        const titleInput = $('push-title');
+        const bodyInput = $('push-body');
+
         $('push-reg').onclick = async () => {
             try {
-                const swCode = `self.addEventListener('push', e => self.registration.showNotification('Push', { body: e.data ? e.data.text() : '(no body)' }));`;
+                // Inline SW that listens for `push` events AND for the `message`
+                // events we use to simulate one without a real push server.
+                const swCode = `
+                    self.addEventListener('install',  e => self.skipWaiting());
+                    self.addEventListener('activate', e => e.waitUntil(self.clients.claim()));
+                    function showFromPayload(payload) {
+                        const data = payload || {};
+                        return self.registration.showNotification(
+                            data.title || 'Push',
+                            { body: data.body || '', tag: data.tag || 'slim-push' }
+                        );
+                    }
+                    self.addEventListener('push', e => {
+                        let payload = {};
+                        try { payload = e.data ? e.data.json() : {}; } catch (_) {
+                            payload = { body: e.data ? e.data.text() : '' };
+                        }
+                        e.waitUntil(showFromPayload(payload));
+                    });
+                    self.addEventListener('message', e => {
+                        if (e.data && e.data.type === 'simulate-push') {
+                            e.waitUntil(showFromPayload(e.data.payload));
+                        }
+                    });
+                `;
                 const swUrl = URL.createObjectURL(new Blob([swCode], { type: 'application/javascript' }));
-                const reg = await navigator.serviceWorker.register(swUrl, { scope: './' });
-                let pushReady = false;
-                try {
-                    const sub = await reg.pushManager.getSubscription();
-                    pushReady = !!sub || true;
-                } catch (e) {}
+                registration = await navigator.serviceWorker.register(swUrl, { scope: './' });
+                await navigator.serviceWorker.ready;
+                let subscription = null;
+                try { subscription = await registration.pushManager.getSubscription(); } catch (_) {}
                 log(out, {
                     swRegistered: true,
-                    scope: reg.scope,
-                    pushManagerAvailable: !!reg.pushManager,
-                    note: 'Real push needs a VAPID-enabled server.'
+                    scope: registration.scope,
+                    pushManagerAvailable: !!registration.pushManager,
+                    activeSubscription: !!subscription,
+                    note: 'Subscribing to a real endpoint needs a VAPID-enabled server. Use "Simulate push" to trigger the SW notification path directly.'
                 });
-            } catch (e) { log(out, 'register failed: ' + e.message); }
+                setPill('push-pill', 'ok', 'sw active');
+            } catch (e) { log(out, 'register failed: ' + e.message); setPill('push-pill', 'bad', 'error'); }
         };
+
+        $('push-simulate').onclick = async () => {
+            if (Notification.permission !== 'granted') {
+                const p = await Notification.requestPermission();
+                if (p !== 'granted') { log(out, 'notification permission ' + p); return; }
+            }
+            const reg = registration || await navigator.serviceWorker.getRegistration();
+            if (!reg || !reg.active) { log(out, 'no active service worker — register first'); return; }
+            const payload = {
+                title: titleInput.value || 'Push',
+                body: bodyInput.value || '',
+                tag: 'slim-push-simulated'
+            };
+            reg.active.postMessage({ type: 'simulate-push', payload });
+            log(out, 'posted simulate-push: ' + JSON.stringify(payload));
+        };
+
         $('push-unsub').onclick = async () => {
             const regs = await navigator.serviceWorker.getRegistrations();
             for (const r of regs) await r.unregister();
+            registration = null;
+            setPill('push-pill', 'ok', 'available');
             log(out, 'unregistered ' + regs.length + ' SWs');
         };
     }
@@ -280,48 +335,53 @@
     function setupQr() {
         const out = 'qr-out';
         const host = $('qr-host');
-        const hasDetector = 'BarcodeDetector' in window;
-        setPill('qr-pill', 'ok', hasDetector ? 'BarcodeDetector' : 'CDN fallback');
+        setPill('qr-pill', 'run', 'loading…');
 
+        let scanner = null;
         let stop = null;
-        async function startNative() {
-            const detector = new BarcodeDetector({ formats: ['qr_code'] });
-            const video = document.createElement('video');
-            video.playsInline = true; video.muted = true;
-            host.innerHTML = ''; host.appendChild(video);
-            const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
-            video.srcObject = stream; await video.play();
-            let running = true;
-            (async function loop() {
-                while (running) {
-                    try {
-                        const codes = await detector.detect(video);
-                        if (codes.length) { log(out, codes.map(c => c.rawValue).join('\n')); break; }
-                    } catch (_) {}
-                    await new Promise(r => setTimeout(r, 250));
-                }
-                stream.getTracks().forEach(t => t.stop());
-            })();
-            stop = () => { running = false; };
+
+        function loadLib() {
+            return new Promise((resolve, reject) => {
+                if (window.Html5QrcodeScanner) return resolve();
+                const s = document.createElement('script');
+                s.src = 'lib/html5-qrcode.min.js';
+                s.onload = () => window.Html5QrcodeScanner ? resolve() : reject(new Error('lib loaded but no Html5QrcodeScanner'));
+                s.onerror = () => reject(new Error('lib/html5-qrcode.min.js missing — run npm run customize to bundle it'));
+                document.head.appendChild(s);
+            });
         }
-        function startLib() {
-            host.innerHTML = '<div id="qr-reader"></div>';
-            const s = document.createElement('script');
-            s.src = 'https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js';
-            s.onload = () => {
-                const scanner = new Html5QrcodeScanner('qr-reader', { fps: 10, qrbox: 250 }, false);
-                scanner.render(t => log(out, t), () => {});
+
+        loadLib().then(() => setPill('qr-pill', 'ok', 'ready'))
+                 .catch(e => { setPill('qr-pill', 'bad', 'missing'); log(out, e.message); });
+
+        $('qr-start').onclick = async () => {
+            try {
+                await loadLib();
+                host.innerHTML = '<div id="qr-reader"></div>';
+                scanner = new Html5QrcodeScanner('qr-reader', {
+                    fps: 10,
+                    qrbox: { width: 250, height: 250 },
+                    rememberLastUsedCamera: true,
+                    showTorchButtonIfSupported: true
+                }, false);
+                scanner.render(
+                    (text) => { log(out, text); setPill('qr-pill', 'ok', 'matched'); },
+                    () => { /* per-frame errors are noisy — ignore */ }
+                );
                 stop = () => scanner.clear().catch(() => {});
-            };
-            s.onerror = () => log(out, 'html5-qrcode CDN unavailable and no native BarcodeDetector — connect to internet or implement a local lib.');
-            document.head.appendChild(s);
-        }
-        $('qr-start').onclick = () => {
-            log(out, 'Starting…');
-            if (hasDetector) startNative().catch(e => log(out, 'error: ' + e.message));
-            else startLib();
+                setPill('qr-pill', 'run', 'scanning');
+            } catch (e) {
+                log(out, 'error: ' + e.message);
+                setPill('qr-pill', 'bad', 'error');
+            }
         };
-        $('qr-stop').onclick = () => { if (stop) stop(); host.innerHTML = ''; log(out, 'stopped'); };
+        $('qr-stop').onclick = () => {
+            if (stop) stop();
+            scanner = null; stop = null;
+            host.innerHTML = '';
+            setPill('qr-pill', 'ok', 'ready');
+            log(out, 'stopped');
+        };
     }
 
     // ── Web Bluetooth ─────────────────────────────────────────────
