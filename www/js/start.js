@@ -85,9 +85,39 @@
         const copy = $('log-copy');
         if (copy) copy.onclick = async () => {
             const text = logBuf.map(e => `[${e.ts}] ${e.level.toUpperCase()} ${e.msg}`).join('\n');
-            try { await navigator.clipboard.writeText(text); }
-            catch (_) { /* clipboard may be blocked */ }
+            const ok = await copyToClipboard(text);
+            const orig = copy.textContent;
+            copy.textContent = ok ? 'Copied ✓' : 'Copy failed';
+            copy.disabled = true;
+            setTimeout(() => { copy.textContent = orig; copy.disabled = false; }, 1200);
+            logEvent(ok ? 'info' : 'warn', ok ? `log copied (${text.length} chars)` : 'log copy failed');
         };
+    }
+
+    async function copyToClipboard(text) {
+        try {
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+                await navigator.clipboard.writeText(text);
+                return true;
+            }
+        } catch (_) { /* fall through to legacy path */ }
+        // Fallback for WebViews where the async Clipboard API is gated.
+        try {
+            const ta = document.createElement('textarea');
+            ta.value = text;
+            ta.setAttribute('readonly', '');
+            ta.style.position = 'fixed';
+            ta.style.top = '0';
+            ta.style.left = '0';
+            ta.style.opacity = '0';
+            document.body.appendChild(ta);
+            ta.focus();
+            ta.select();
+            ta.setSelectionRange(0, text.length);
+            const ok = document.execCommand('copy');
+            document.body.removeChild(ta);
+            return ok;
+        } catch (_) { return false; }
     }
 
     // Request a single runtime permission via cordova-plugin-android-permissions.
