@@ -11,7 +11,7 @@
 const fs = require('fs');
 const path = require('path');
 
-const TEMPLATE_DIR = path.resolve(__dirname, '..', 'android');
+const TEMPLATE_DIR = path.resolve(__dirname, '..', 'templates-android');
 const CUSTOMIZE = path.resolve(__dirname, '..', 'customize.json');
 
 function read(p) { return fs.readFileSync(p, 'utf8'); }
