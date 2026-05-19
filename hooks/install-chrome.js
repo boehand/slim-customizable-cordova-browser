@@ -82,8 +82,10 @@ module.exports = function (ctx) {
     // Resources.
     const resDir = path.join(appDir, 'src', 'main', 'res');
     const copies = [
-        ['res/layout/activity_chrome.xml', path.join(resDir, 'layout', 'activity_chrome.xml')],
-        ['res/drawable/url_bar_bg.xml',    path.join(resDir, 'drawable', 'url_bar_bg.xml')]
+        ['res/layout/activity_chrome.xml',     path.join(resDir, 'layout', 'activity_chrome.xml')],
+        ['res/drawable/url_bar_bg.xml',        path.join(resDir, 'drawable', 'url_bar_bg.xml')],
+        ['res/values/colors.xml',              path.join(resDir, 'values', 'chrome_colors.xml')],
+        ['res/values-night/colors.xml',        path.join(resDir, 'values-night', 'chrome_colors.xml')]
     ];
     for (const [src, dst] of copies) {
         fs.mkdirSync(path.dirname(dst), { recursive: true });
